@@ -113,3 +113,10 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   -n prometheus \
   --values ./yaml/helm/values/kube-prometheus-stack.yaml
 ```
+
+You can get the `Grafana` username and password from this Kubernetes secret -
+**kube-prometheus-stack-grafana**.
+Grafana can be accessed at *http://localhost:3000*, after you execute this command -
+```sh
+kubectl port-forward svc/kube-prometheus-stack-grafana -n prometheus 3000:80
+```

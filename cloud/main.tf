@@ -8,11 +8,31 @@ terraform {
       source = "digitalocean/digitalocean"
       version = "2.31.0"
     }
+
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+      version = "2.23.0"
+    }
+
+    helm = {
+      source = "hashicorp/helm"
+      version = "2.11.0"
+    }
   }
 }
 
 provider "digitalocean" {
   token = var.args.digitalocean.token
+}
+
+provider "kubernetes" {
+  config_path = "./outputs/kubeconfig"
+}
+
+provider "helm" {
+  kubernetes {
+    config_path = "./outputs/kubeconfig"
+  }
 }
 
 // A Virtual Private Cloud (VPC) is a private network interface for collections of DigitalOcean
@@ -59,4 +79,24 @@ resource "digitalocean_kubernetes_cluster" "default" {
   }
 
   destroy_all_associated_resources = true
+}
+
+resource "helm_release" "argocd" {
+  name = "argocd"
+
+  namespace = "argocd"
+  create_namespace = true
+
+  repository = "https://argoproj.github.io/argo-helm"
+  chart = "argo-cd"
+  version = "5.46.8"
+
+  wait = true
+}
+
+// Creating the ArgoCD Application Manager
+resource "kubernetes_manifest" "argocd_application_manager" {
+  manifest = yamldecode(file("./argocd-application-manager.yaml"))
+
+  depends_on = [ helm_release.argocd ]
 }
