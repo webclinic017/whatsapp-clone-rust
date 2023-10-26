@@ -1,5 +1,9 @@
 outputs/
 
+## Kubernetes secrets
+secrets/
+*.secret.yaml
+
 # Created by https://www.toptal.com/developers/gitignore/api/terraform
 
 ### Terraform ###

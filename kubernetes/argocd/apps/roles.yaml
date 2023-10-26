@@ -14,7 +14,7 @@ spec:
   source:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
     targetRevision: HEAD
-    path: kubernetes/yaml/roles
+    path: kubernetes/roles
     directory:
       recurse: true
 

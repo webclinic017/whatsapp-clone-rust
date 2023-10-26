@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: kubernetes-dashboard
+  name: gateway-api
   namespace: argocd
 
 spec:
@@ -10,12 +10,11 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: kubernetes-dashboard
 
   source:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
     targetRevision: HEAD
-    path: kubernetes/yaml/argo/cd/apps/kubernetes-dashboard
+    path: kubernetes/argocd/apps/gateway-api
 
   syncPolicy:
     automated:

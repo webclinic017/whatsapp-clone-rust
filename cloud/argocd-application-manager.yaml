@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
     targetRevision: HEAD
-    path: kubernetes/yaml/argo/cd/apps
+    path: kubernetes/argocd/apps
     directory:
       recurse: true
 
