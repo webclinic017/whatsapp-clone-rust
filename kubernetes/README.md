@@ -1,16 +1,4 @@
-## Deploying Kubernetes Dashboard
-
-Kubernetes Dashboard is a web-based Kubernetes UI. Here, we will use it to get an overview of
-applications running on the cluster. Let's deploy Kubernetes Dasboard :-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
-```
-Currently, Kubernetes Dashboard only supports ServiceAccounts.
-
-Let's create a ServiceAccount named `cluster-admin` which represents the cluster admin.
-```sh
-kubectl apply -f ./yaml/serviceaccounts/cluster-admin
-```
+## Kubernetes Dashboard
 
 You can access the Kubernetes dashboard at *http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/*, after running these commands :-
 ```sh
