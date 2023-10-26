@@ -19,7 +19,11 @@ spec:
     helm:
       releaseName: cilium
       valuesObject:
+
         kubeProxyReplacement: true
+
+        gatewayAPI:
+          enabled: true
 
   syncPolicy:
     automated:
