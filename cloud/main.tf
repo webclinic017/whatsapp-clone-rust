@@ -124,6 +124,8 @@ resource "helm_release" "argocd" {
   version = "5.46.8"
 
   wait = true
+
+  depends_on = [ digitalocean_kubernetes_cluster.default ]
 }
 
 // Creating the ArgoCD Application Manager
@@ -131,4 +133,26 @@ resource "kubernetes_manifest" "argocd_application_manager" {
   manifest = yamldecode(file("./argocd-application-manager.yaml"))
 
   depends_on = [ helm_release.argocd ]
+}
+
+// Create a Kubernetes Secret containing the TLS certificate for Bitnami Sealed Secrets. Bitnami
+// Sealed Secrets will use this TLS certificate to encrypt and decrypt Kubernetes Secrets.
+resource "kubernetes_secret" "sealed_secrets_key" {
+  type = "kubernetes.io/tls"
+
+  metadata {
+    name = "sealed-secrets-key"
+    namespace = "kube-system"
+
+    labels = {
+      "sealedsecrets.bitnami.com/sealed-secrets-key" = "active"
+    }
+  }
+
+  data = {
+    "tls.crt" = filebase64("../kubernetes/sealed-secrets.crt")
+    "tls.key" = filebase64("../kubernetes/sealed-secrets.key")
+  }
+
+  depends_on = [ digitalocean_kubernetes_cluster.default ]
 }
