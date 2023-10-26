@@ -90,33 +90,3 @@ kubectl apply -f ./yaml/roles/database-engineer.yaml && \
 # Create the database namespace
 kubectl create namespace databases
 ```
-
-Now, in real world scenarios, there will be lots of Roles, ClusterRoles, RoleBindings and
-ClusterRoleBindings. To visualize them, you can install `Kubescape` and use their RBAC
-visualizer. Use this command to install Kubescape -
-```sh
-helm repo add kubescape https://kubescape.github.io/helm-charts/ && \
-  helm repo update && \
-helm upgrade \
-  --install kubescape kubescape/kubescape-operator \
-  -n kubescape --create-namespace \
-  --values ./yaml/helm/values/kubescape-operator.yaml
-```
-
-## Monitoring (Prometheus and Grafana)
-
-```sh
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts && \
-  helm repo update
-kubectl create namespace prometheus
-helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  -n prometheus \
-  --values ./yaml/helm/values/kube-prometheus-stack.yaml
-```
-
-You can get the `Grafana` username and password from this Kubernetes secret -
-**kube-prometheus-stack-grafana**.
-Grafana can be accessed at *http://localhost:3000*, after you execute this command -
-```sh
-kubectl port-forward svc/kube-prometheus-stack-grafana -n prometheus 3000:80
-```
