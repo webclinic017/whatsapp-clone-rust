@@ -63,8 +63,8 @@ Now, the Certificate has an expiration time. Let's give Adam permission to creat
 CSR by himself.
 ```sh
 # Create the ClusterRole and ClusterRoleBinding.
-kubectl apply -f ./yaml/roles/physical-user.yaml && \
-  kubectl apply -f ./yaml/roles/bindings/adam/physical-user.yaml
+kubectl apply -f ./base/roles/physical-user.yaml && \
+  kubectl apply -f ./base/roles/bindings/adam/physical-user.yaml
 ```
 So from next time, he can also create the Kubernetes CSR object. I just need to approve it and share
 the generated Certificate with him.
@@ -72,8 +72,8 @@ the generated Certificate with him.
 Now, I will define the permissions for a database engineer using a Kubernetes `Role` and then bind the Role with Adam.
 ```sh
 # Create the Role and RoleBinding.
-kubectl apply -f ./yaml/roles/database-engineer.yaml && \
-  kubectl apply -f ./yaml/roles/bindings/adam/database-engineer.yaml
+kubectl apply -f ./base/roles/database-engineer.yaml && \
+  kubectl apply -f ./base/roles/bindings/adam/database-engineer.yaml
 
 # Create the database namespace
 kubectl create namespace databases

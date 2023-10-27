@@ -1,0 +1,5 @@
+resources:
+  - ./database-engineer.yaml
+  - ./physical-user.yaml
+
+  - ./bindings/adam.yaml

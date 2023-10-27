@@ -8,16 +8,11 @@ variable "args" {
 }
 
 locals {
-  droplet = {
-    // 2 GB RAM
-    // 2 AMD CPUs
-    // 60GB NVMe SSD as the boot disk.
-    size = "s-2vcpu-2gb-amd"
-  }
+  kubeconfig_path = "./outputs/kubeconfig.yaml"
 }
 
 resource "local_file" "kubeconfig" {
-  filename = "./outputs/kubeconfig"
+  filename = "./outputs/kubeconfig.yaml"
 
   // Only owner can perform read, write and execute operations on the file.
   file_permission = "700"

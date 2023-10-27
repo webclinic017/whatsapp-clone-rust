@@ -26,12 +26,14 @@ provider "digitalocean" {
 }
 
 provider "kubernetes" {
-  config_path = "./outputs/kubeconfig"
+  config_path = local.kubeconfig_path
+  config_context = "do-fra1-main"
 }
 
 provider "helm" {
   kubernetes {
-    config_path = "./outputs/kubeconfig"
+    config_path = local.kubeconfig_path
+    config_context = "do-fra1-main"
   }
 }
 
@@ -44,115 +46,4 @@ resource "digitalocean_vpc" "default" {
   region = var.args.digitalocean.region
 
   ip_range = "10.0.0.0/24"
-}
-
-resource "digitalocean_kubernetes_cluster" "default" {
-  name = "main"
-  region = var.args.digitalocean.region
-
-  vpc_uuid = digitalocean_vpc.default.id
-
-  version = "1.28.2-do.0"
-  auto_upgrade = false
-  maintenance_policy {
-    day = "thursday"
-    start_time = "00:00"
-  }
-
-  ha = false
-
-  node_pool {
-    name = "default"
-
-    auto_scale = true
-    min_nodes = 1
-    max_nodes = 3
-
-    // DigitalOcean Droplets are Linux-based virtual machines (VMs) that run on top of virtualized
-    // hardware.
-    // The size of DigitalOcean Droplets to use as worker nodes.
-    size = local.droplet.size
-
-    labels = {
-      "node_type" = "general_purpose"
-    }
-  }
-
-  destroy_all_associated_resources = true
-}
-
-// Since we want to use Cilium's service mesh and Gateway API integration features, Cilium must be
-// installed with the kube-proxy replacement mode set to true. So, we need to uninstall the Cilium
-// installation that comes by default with the DigitalOcean Kubernetes cluster and reinstall Cilium
-// with the kube-proxy replacement set as true.
-resource "null_resource" "replace_cilium_installation" {
-  provisioner "local-exec" {
-    when = create
-    on_failure = fail
-
-    command = <<-EOC
-      export KUBECONFIG=$(pwd)/outputs/kubeconfig
-
-      kubectl delete -n kube-system \
-        daemonset.apps/kube-proxy \
-        daemonset.apps/cilium \
-        deployment.apps/cilium-operator \
-        serviceaccount/cilium clusterrole/cilium clusterrolebinding/cilium \
-        serviceaccount/cilium-operator clusterrole/cilium-operator clusterrolebinding/cilium-operator \
-        cm/cilium-config \
-        role/cilium-config-agent rolebinding/cilium-config-agent
-
-      helm install cilium cilium/cilium --version 1.14.3 \
-        --namespace kube-system \
-        --set kubeProxyReplacement=true
-
-      cilium status
-    EOC
-  }
-
-  depends_on = [ digitalocean_kubernetes_cluster.default ]
-}
-
-resource "helm_release" "argocd" {
-  name = "argocd"
-
-  namespace = "argocd"
-  create_namespace = true
-
-  repository = "https://argoproj.github.io/argo-helm"
-  chart = "argo-cd"
-  version = "5.46.8"
-
-  wait = true
-
-  depends_on = [ digitalocean_kubernetes_cluster.default ]
-}
-
-// Creating the ArgoCD Application Manager
-resource "kubernetes_manifest" "argocd_application_manager" {
-  manifest = yamldecode(file("./argocd-application-manager.yaml"))
-
-  depends_on = [ helm_release.argocd ]
-}
-
-// Create a Kubernetes Secret containing the TLS certificate for Bitnami Sealed Secrets. Bitnami
-// Sealed Secrets will use this TLS certificate to encrypt and decrypt Kubernetes Secrets.
-resource "kubernetes_secret" "sealed_secrets_key" {
-  type = "kubernetes.io/tls"
-
-  metadata {
-    name = "sealed-secrets-key"
-    namespace = "kube-system"
-
-    labels = {
-      "sealedsecrets.bitnami.com/sealed-secrets-key" = "active"
-    }
-  }
-
-  data = {
-    "tls.crt" = filebase64("../kubernetes/sealed-secrets.crt")
-    "tls.key" = filebase64("../kubernetes/sealed-secrets.key")
-  }
-
-  depends_on = [ digitalocean_kubernetes_cluster.default ]
 }

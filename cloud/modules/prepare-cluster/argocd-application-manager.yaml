@@ -10,10 +10,8 @@ spec:
 
   source:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
-    targetRevision: HEAD
-    path: kubernetes/argocd/apps
-    directory:
-      recurse: true
+    targetRevision: ${BRANCH}
+    path: kubernetes/workspaces/${WORKSPACE}
 
   destination:
     server: https://kubernetes.default.svc

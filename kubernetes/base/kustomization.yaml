@@ -1,0 +1,5 @@
+resources:
+  - ./bitnami-sealed-secrets.yaml
+  - ./kube-prometheus-stack.yaml
+  - ./kubernetes-dashboard.yaml
+  - ./roles.yaml
