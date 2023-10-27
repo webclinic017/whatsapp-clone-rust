@@ -1,0 +1,33 @@
+[package]
+name = "whatsapp-clone"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+panic = "abort"
+
+[profile.dev]
+panic = "abort"
+
+[profile.test]
+panic = "abort"
+
+[[bin]]
+name = "authentication-microservice"
+path = "./backend/microservices/authentication/main.rs"
+
+## See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+dotenv = "0.15.0"
+lazy_static = "1.4.0"
+prost = "0.12.1"
+tokio = { version = "1.33.0", features = ["rt-multi-thread", "macros", "signal"] }
+tokio-util = "0.7.10"
+tonic = { version = "0.10.2", features = ["gzip"] }
+tonic-health = "0.10.2"
+tonic-reflection = "0.10.2"
+
+[build-dependencies]
+tonic-build = "0.10.2"
