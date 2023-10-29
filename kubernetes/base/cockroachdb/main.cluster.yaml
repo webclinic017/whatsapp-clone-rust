@@ -1,0 +1,31 @@
+apiVersion: crdb.cockroachlabs.com/v1alpha1
+kind: CrdbCluster
+metadata:
+  name: main
+  namespace: cockroachdb
+
+spec:
+  dataStore:
+    pvc:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 500Mi
+        volumeMode: Filesystem
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 1
+      memory: 4Gi
+
+  tlsEnabled: true
+
+  image:
+    name: cockroachdb/cockroach:v23.1.11
+
+  # Nodes refers to the number of crdb pods that are created via the Statefulset.
+  nodes: 3

@@ -1,4 +1,6 @@
 outputs/
+.DS_STORE
+scratchpad.txt
 
 ## Kubernetes secrets
 secrets/

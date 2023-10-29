@@ -22,10 +22,10 @@ resource "digitalocean_kubernetes_cluster" "default" {
 
     // DigitalOcean Droplets are Linux-based virtual machines (VMs) that run on top of virtualized
     // hardware.
-    // Size each DigitalOcean Droplet in the node-pool.
-    size = "s-2vcpu-4gb-amd" // 4 GB RAM
-                             // 2 AMD CPUs
-                             // 80GB NVMe SSD as the boot disk.
+    // Size of each DigitalOcean Droplet in the node-pool.
+    size = "s-4vcpu-8gb-amd" // 8 GB RAM
+                             // 4 AMD CPUs
+                             // 160GB NVMe SSD as the boot disk.
 
     labels = {
       "env" = "production"

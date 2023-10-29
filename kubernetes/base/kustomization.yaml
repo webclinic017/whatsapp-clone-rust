@@ -2,4 +2,5 @@ resources:
   - ./bitnami-sealed-secrets.yaml
   - ./kube-prometheus-stack.yaml
   - ./kubernetes-dashboard.yaml
+  - ./cockroachdb.yaml
   - ./roles.yaml

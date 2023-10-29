@@ -13,7 +13,7 @@ resource "kubernetes_secret" "sealed_secrets_key" {
   }
 
   data = {
-    "tls.crt" = filebase64("${path.module}/sealed-secrets.crt")
-    "tls.key" = filebase64("${path.module}/sealed-secrets.key")
+    "tls.crt" = file("${path.module}/sealed-secrets.crt")
+    "tls.key" = file("${path.module}/sealed-secrets.key")
   }
 }
