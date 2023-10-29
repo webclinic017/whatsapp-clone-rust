@@ -1,0 +1,7 @@
+resources:
+  ## Install CRDs
+  - https://github.com/cert-manager/cert-manager/releases/download/v1.13.1/cert-manager.crds.yaml
+  - ./helm-installation.yaml
+
+  - ./cluster-issuer.yaml
+  - ./cloudflare-api-key.sealed-secret.yaml

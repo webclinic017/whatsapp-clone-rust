@@ -1,3 +1,4 @@
 resources:
   - ../../base
   - ./kubescape.yaml
+  - ./cert-manager.yaml
