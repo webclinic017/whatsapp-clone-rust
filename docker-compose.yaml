@@ -1,0 +1,28 @@
+name: whatsapp-clone
+version: '3'
+
+services:
+
+  cockroachdb:
+    image: cockroachdb/cockroach:v22.2.15
+    ports:
+      - "26257:26257"
+      - "8080:8080" ## Port exposing Dashboard UI.
+    command: start-single-node --insecure
+
+  migrate:
+    image: migrate/migrate:v4.16.2
+    volumes:
+      - ./schema.sql:/migrations/000001_main.up.sql:ro
+    entrypoint:
+      [
+        "migrate",
+        "-path",
+        "/migrations",
+        "-database",
+        "cockroachdb://root@cockroachdb:26257/defaultdb?sslmode=disable",
+      ]
+    command: ["up"]
+    depends_on: [cockroachdb]
+    links: [cockroachdb]
+    restart: on-failure
