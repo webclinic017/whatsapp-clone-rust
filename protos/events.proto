@@ -1,0 +1,40 @@
+syntax= "proto3";
+
+package events.v1;
+option go_package= "protoc_generated/";
+
+// CloudEvents is a specification for describing event data in common formats to provide
+// interoperability across services, platforms and systems.
+// Read more here - https://github.com/cloudevents/spec.
+message CloudEvent {
+
+  // Required attributes.
+  string id= 1;
+  string source= 2;
+  string spec_version= 3;
+  string type= 4;
+
+  // Event payload.
+  oneof payload {
+
+    UserRegisteredEvent user_registered_event= 5;
+
+    UsernameUpdatedEvent username_updated_event= 6;
+
+  }
+}
+
+// -- Events generated from AUTHENTICATION MICROSERVICE --
+
+message UserRegisteredEvent {
+  string user_id= 1;
+  string name= 2;
+  string username= 3;
+}
+
+// -- Events generated from PROFILE MICROSERVICE --
+
+message UsernameUpdatedEvent {
+  string user_id= 1;
+  string new_username= 2;
+}

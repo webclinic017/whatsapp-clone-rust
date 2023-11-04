@@ -3,26 +3,22 @@ version: '3'
 
 services:
 
-  cockroachdb:
-    image: cockroachdb/cockroach:v22.2.15
+  surrealdb:
+    container_name: surrealdb
+    image: surrealdb/surrealdb:latest
     ports:
-      - "26257:26257"
-      - "8080:8080" ## Port exposing Dashboard UI.
-    command: start-single-node --insecure
+      - 8080:8080/tcp
+    entrypoint: /surreal start --auth --user root --pass password --allow-funcs
 
-  migrate:
-    image: migrate/migrate:v4.16.2
+  surrealdb-migrate:
+    container_name: surrealdb-migrate
+    build:
+      context: .
+      dockerfile: ./dockerfiles/surrealdb-migrate.dockerfile
     volumes:
-      - ./schema.sql:/migrations/000001_main.up.sql:ro
-    entrypoint:
-      [
-        "migrate",
-        "-path",
-        "/migrations",
-        "-database",
-        "cockroachdb://root@cockroachdb:26257/defaultdb?sslmode=disable",
-      ]
-    command: ["up"]
-    depends_on: [cockroachdb]
-    links: [cockroachdb]
+      - ./schema.surql:/migrations/schema.surql:ro
+    environment:
+      - ENDPOINT=http://surrealdb:8000
     restart: on-failure
+    depends_on:
+      - surrealdb

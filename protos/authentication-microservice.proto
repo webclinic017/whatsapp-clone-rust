@@ -1,0 +1,44 @@
+syntax= "proto3";
+
+package authentication.microservice;
+
+import "google/protobuf/empty.proto";
+
+service AuthenticationService {
+
+  // StartRegistration is invoked when the user starts the registration processing by submitting the
+  // registration details. It will validate those details, cache them (for 5 minutes), generate a
+  // verification link and email it to the user.
+  rpc StartRegistration(StartRegistrationRequest) returns(google.protobuf.Empty) { }
+
+  // VerifyUser is invoked when the user clicks on the verification link emailed to him/her. If the
+  // provided verification code is correct, the user details is permanently saved in the database.
+  // A JWT (Access token) is then generated and sent back.
+  rpc VerifyUser(VerifyUserRequest) returns(google.protobuf.Empty) { }
+
+  // Signin is invoked when a user wants to signin. After verifying the user's details, a JWT (Access
+  // token) is generated and sent back.
+  rpc Signin(SigninRequest) returns(SigninResponse) { }
+
+}
+
+message StartRegistrationRequest {
+  string name= 1;
+  string email= 2;
+  string username= 3;
+  string password= 4;
+}
+
+message VerifyUserRequest {
+  string email= 1;
+  string verification_code= 2;
+}
+
+message SigninResponse {
+  string jwt= 1;
+}
+
+message SigninRequest {
+  string identifier= 1; // Email or username
+  string password= 2;
+}
