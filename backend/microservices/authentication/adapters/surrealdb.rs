@@ -39,20 +39,22 @@ impl SurrealdbAdapter {
   // new instantiates SurrealdbAdapter and establishes connection with the database. The instance is
   // returned.
   pub async fn new( ) -> Self {
-    let connection= Surreal::new::<Ws>(&CONFIG.SURREALDB_URL)
-      .await.expect("ERROR: Connecting to SurrealDb");
+    let url= &CONFIG.SURREALDB_URL;
+
+    let connection= Surreal::new::<Ws>(url)
+      .await.expect(&format!("ERROR: Connecting to Surrealdb at {}", url));
 
     connection.signin(Namespace {
       namespace: "authentication_microservice",
       username: "authentication_microservice",
       password: &CONFIG.SURREALDB_PASSWORD
     })
-      .await.expect("ERROR: Signing in to SurrealDb");
+      .await.expect("ERROR: Signing in to Surrealdb");
 
     connection.use_db("authentication_microservice")
-              .await.expect("ERROR: Using namespace and database of SurrealDb");
+              .await.expect("ERROR: Using namespace and database of Surrealdb");
 
-    println!("INFO: Connected to SurrealDb");
+    println!("INFO: Connected to Surrealdb");
 
     Self { connection }
   }

@@ -33,7 +33,7 @@ DEFINE NAMESPACE profile_microservice;
 USE NAMESPACE profile_microservice;
 
   DEFINE USER profile_microservice ON NAMESPACE
-    PASSWORD 'n}Zb!VXGHp3U98'
+    PASSWORD 'nZbVXGHp3U98'
     ROLES EDITOR;
 
   DEFINE DATABASE profile_microservice;
