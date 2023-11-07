@@ -1,9 +1,9 @@
-use tonic::{transport::Server, codec::CompressionEncoding, Request, Response, Status, async_trait, Code};
+use tonic::{transport::Server, codec::CompressionEncoding, Status, async_trait, Code, Request, Response};
 use crate::{
   CONFIG,
-  proto::{*, authentication_service_server::{AuthenticationService, AuthenticationServiceServer}},
+  proto::{*, profile_service_server::{ProfileService, ProfileServiceServer}},
   THREAD_CANCELLATION_TOKEN,
-  domain::usecases::Usecases, utils::SERVER_ERROR
+  domain::{usecases::Usecases, ports}, utils::SERVER_ERROR
 };
 
 const MAX_REQUEST_SIZE: usize= 512; //bytes
@@ -17,7 +17,7 @@ impl GrpcAdapter {
     let address= address.parse( )
                         .expect(&format!("ERROR: parsing binding address of the gRPC server : {}", address));
 
-    let authenticationService= AuthenticationServiceServer::new(AuthenticationServiceImpl{ usecases })
+    let profileService= ProfileServiceServer::new(ProfileServiceImpl{ usecases })
       .max_decoding_message_size(MAX_REQUEST_SIZE)
       .send_compressed(CompressionEncoding::Gzip)
       .accept_compressed(CompressionEncoding::Gzip);
@@ -31,33 +31,45 @@ impl GrpcAdapter {
     println!("Starting gRPC server");
 
     Server::builder( )
+      .add_service(profileService)
       .add_service(reflectionService)
       .serve_with_shutdown(address, THREAD_CANCELLATION_TOKEN.clone( ).cancelled( ))
       .await.expect("ERROR: starting gRPC server");
   }
 }
 
-struct AuthenticationServiceImpl {
+struct ProfileServiceImpl {
   usecases: Box<Usecases>
 }
 
 #[async_trait]
-impl AuthenticationService for AuthenticationServiceImpl {
+impl ProfileService for ProfileServiceImpl {
 
-  async fn start_registration(&self, request: Request<StartRegistrationRequest>) ->  Result<Response<( )> ,Status> {
+  async fn search_profiles(&self, request: Request<SearchProfilesRequest>) -> Result<Response<SearchProfilesResponse>, Status> {
     let request= request.into_inner( );
 
-    self.usecases.startRegistration(&request).await
-      .map(|_| Response::new(( )))
+    self.usecases.searchProfiles(&request.query).await
+      .map(|profiles| {
+
+        let profiles= profiles.iter( )
+                              .map(|profile| transformProfileDataType(profile))
+                              .collect( );
+
+        Response::new(SearchProfilesResponse { profiles })
+      })
       .map_err(mapToGrpcError)
   }
 
-  async fn verify_user(&self, request: Request<VerifyUserRequest>) ->  Result<Response<( )> ,Status> {
-    unimplemented!( )
-  }
+  async fn get_profile_by_user_id(&self, request: Request<GetProfileByUserIdRequest>) -> Result<Response<GetProfileByUserIdResponse>, Status> {
+    let request= request.into_inner( );
 
-  async fn signin(&self, request: Request<SigninRequest>) ->  Result<Response<SigninResponse> ,Status> {
-    unimplemented!( )
+    self.usecases.getProfileByUserId(&request.user_id).await
+      .map(|profile| {
+        Response::new(GetProfileByUserIdResponse {
+          profile: Some(transformProfileDataType(&profile))
+        })
+      })
+      .map_err(mapToGrpcError)
   }
 }
 
@@ -71,4 +83,14 @@ fn mapToGrpcError(error: anyhow::Error) -> Status {
     else { Code::InvalidArgument };
 
   Status::new(grpcErrorCode, errorAsString)
+}
+
+// transformProfileDataType is used to transform ports::Profile to Profile.
+fn transformProfileDataType(profile: &ports::Profile) -> Profile {
+  Profile {
+    id: profile.id.to_string( ),
+    user_id: profile.userId.to_owned( ),
+    name: profile.name.to_owned( ),
+    username: profile.username.to_owned( )
+  }
 }

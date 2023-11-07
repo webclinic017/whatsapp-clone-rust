@@ -41,11 +41,13 @@ USE NAMESPACE profile_microservice;
 
     DEFINE TABLE profiles SCHEMAFULL;
 
+      DEFINE FIELD user_id ON TABLE profiles TYPE string;
+
       DEFINE FIELD name ON TABLE profiles TYPE string;
       DEFINE FIELD username ON TABLE profiles TYPE string;
 
       // An analyzer plays a crucial role in text processing and searching.
-      DEFINE ANALYZER name_username
+      DEFINE ANALYZER default
         // Tokenizers are responsible for breaking down a given text into individual tokens based on
         // a set of instructions. The blank tokenizer breaks down a text into tokens by creating a
         // new token each time it encounters a space, tab, or newline character.
@@ -57,60 +59,29 @@ USE NAMESPACE profile_microservice;
           lowercase,
           uppercase;
 
-      DEFINE INDEX name_username ON TABLE profiles
-        FIELDS username, name
+      DEFINE INDEX name_index ON TABLE profiles
+        FIELDS name
         SEARCH
-        ANALYZER name_username
+        ANALYZER default
         BM25 // Search algorithm used.
         HIGHLIGHTS;
 
-      DEFINE FIELD picture_uri ON TABLE profiles TYPE option<string>;
+      DEFINE INDEX username_index ON TABLE profiles
+        FIELDS username
+        SEARCH
+        ANALYZER default
+        BM25
+        HIGHLIGHTS;
 
-### Followships Microservice ###
-DEFINE NAMESPACE followships_microservice;
-USE NAMESPACE followships_microservice;
+### Chat Microservice ###
+DEFINE NAMESPACE chat_microservice;
+USE NAMESPACE chat_microservice;
 
-  DEFINE USER followships_microservice ON NAMESPACE
-    PASSWORD '(10}_-r@1NA%qt$'
+  DEFINE USER chat_microservice ON NAMESPACE
+    PASSWORD 'n}Zb!VXGHp3U98'
     ROLES EDITOR;
 
-  DEFINE DATABASE followships_microservice;
-  USE DB followships_microservice;
+  DEFINE DATABASE chat_microservice;
+  USE DB chat_microservice;
 
-    DEFINE TABLE followships SCHEMAFULL;
-
-      DEFINE FIELD followee_id ON TABLE followships TYPE string;
-      DEFINE FIELD follower_id ON TABLE followships TYPE string;
-
-### Posts Microservice ###
-DEFINE NAMESPACE posts_microservice;
-USE NAMESPACE posts_microservice;
-
-  DEFINE USER posts_microservice ON NAMESPACE
-    PASSWORD 'Mj489fF5FBlisKV'
-    ROLES EDITOR;
-
-  DEFINE DATABASE posts_microservice;
-  USE DB posts_microservice;
-
-    DEFINE TABLE posts SCHEMAFULL;
-
-      DEFINE FIELD creator_id on TABLE posts TYPE string;
-      DEFINE FIELD picture_uri on TABLE posts TYPE string;
-      DEFINE FIELD caption on TABLE posts TYPE option<string>;
-
-### Likes Microservice ###
-DEFINE NAMESPACE likes_microservice;
-USE NAMESPACE likes_microservice;
-
-  DEFINE USER likes_microservice ON NAMESPACE
-    PASSWORD '@zJcRKZ&MLl=6CT'
-    ROLES EDITOR;
-
-  DEFINE DATABASE likes_microservice;
-  USE DB likes_microservice;
-
-    DEFINE TABLE likes SCHEMAFULL;
-
-      DEFINE FIELD post_id on TABLE likes TYPE string;
-      DEFINE FIELD user_id on TABLE likes TYPE string;
+    DEFINE TABLE chats SCHEMAFULL;

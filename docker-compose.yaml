@@ -7,7 +7,7 @@ services:
     container_name: surrealdb
     image: surrealdb/surrealdb:latest
     ports:
-      - 8080:8080/tcp
+      - 8000:8000/tcp
     entrypoint: /surreal start --auth --user root --pass password --allow-funcs
 
   surrealdb-migrate:

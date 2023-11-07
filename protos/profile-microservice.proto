@@ -1,0 +1,37 @@
+syntax= "proto3";
+
+package profile.microservice;
+
+service ProfileService {
+
+  // SearchProfiles is invoked to search users by the given search query.
+  rpc SearchProfiles(SearchProfilesRequest) returns(SearchProfilesResponse) { }
+
+  // GetProfileByUserId is invoked to get the user profile with the given user-id.
+  rpc GetProfileByUserId(GetProfileByUserIdRequest) returns(GetProfileByUserIdResponse) { }
+
+}
+
+message GetProfileByUserIdRequest {
+  string userId= 1;
+}
+
+message GetProfileByUserIdResponse {
+  Profile profile= 1;
+}
+
+message SearchProfilesRequest {
+  string query= 1;
+}
+
+message SearchProfilesResponse {
+  repeated Profile profiles= 1;
+}
+
+message Profile {
+  string id= 1;
+  string user_id= 2;
+
+  string name= 3;
+  string username= 4;
+}

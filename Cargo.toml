@@ -7,7 +7,11 @@ edition = "2021"
 name = "authentication-microservice"
 path = "./backend/microservices/authentication/main.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "profile-microservice"
+path = "./backend/microservices/profile/main.rs"
+
+## See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.75"
