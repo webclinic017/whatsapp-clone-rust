@@ -22,10 +22,6 @@ spec:
   helper:
     image: alpine:3.16.0
 
-  ## Enabling mutual TLS connection between TiDB cluster components.
-  tlsCluster:
-    enabled: true
-
   ## The Placement Driver (PD) server is the metadata managing component of the entire cluster. It
   ## stores metadata of real-time data distribution of every single TiKV node and the topology
   ## structure of the entire TiDB cluster, provides the TiDB Dashboard management UI, and allocates
