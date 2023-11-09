@@ -1,0 +1,4 @@
+namespace: surrealdb
+resources:
+  - ./surrealdb-migrate.job.yaml
+  - ./surrealdb-schema.sealed-secret.yaml

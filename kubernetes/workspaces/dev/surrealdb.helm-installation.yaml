@@ -22,7 +22,7 @@ spec:
 
         surrealdb:
           ## Datastore path
-          path: tikv://main-pd:2379
+          path: memory
 
           ## Initially there will be no authentication mechanism. When the surrealdb-migrate
           ## Kubernetes Job will run, it will create a root user thus enforcing authentication.
@@ -40,3 +40,5 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -7,8 +7,6 @@ metadata:
   namespace: surrealdb
 
 spec:
-  ttlSecondsAfterFinished: 0
-
   backoffLimit: 50
   completions: 1
 

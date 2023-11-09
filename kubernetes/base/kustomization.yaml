@@ -1,5 +1,4 @@
 resources:
   - ./bitnami-sealed-secrets.yaml
   - ./roles.yaml
-  - ./istio.yaml
-  - ./surrealdb.yaml
+  - ./surrealdb-migrate.yaml
