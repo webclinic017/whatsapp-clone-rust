@@ -1,4 +1,6 @@
 resources:
+  - ./argocd-kustomize-enable-helm
+
   - ./bitnami-sealed-secrets.yaml
   - ./roles.yaml
   - ./surrealdb-migrate.yaml

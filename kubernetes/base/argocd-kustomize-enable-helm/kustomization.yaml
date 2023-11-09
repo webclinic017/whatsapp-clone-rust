@@ -1,0 +1,3 @@
+resources:
+  - ./configmap.yaml
+  - ./argocd-repo-server.patched.yaml
