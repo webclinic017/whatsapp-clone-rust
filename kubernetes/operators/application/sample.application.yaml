@@ -1,0 +1,13 @@
+apiVersion: whatsappclone.io/v1alpha1
+kind: Application
+metadata:
+  name: authentication-microservice
+  namespace: microservices
+
+spec:
+  image: archismanmridha/whatsapp-clone-authentication-microservice:0.0.1-alpha
+  replicas:
+    min: 1
+    max: 3
+  secretName: authentication-microservice
+  port: 4000

@@ -8,3 +8,16 @@ gen-sealed-secrets:
 operator-codegen:
 	chmod +x ./scripts/operator-codegen.sh && \
 		./scripts/operator-codegen.sh
+
+## Generate GoLang types from protobuf definitions.
+protoc-gen-go:
+	rm -rf ./backend/outboxer/generated/protoc && \
+		mkdir -p ./backend/outboxer/generated/protoc
+	protoc \
+		--experimental_allow_proto3_optional \
+		--go_out=./backend/outboxer/generated/protoc --go_opt=paths=source_relative \
+		--proto_path=./protos \
+		./protos/events.proto
+	cd ./backend/outboxer && \
+		go mod tidy
+	go work sync
