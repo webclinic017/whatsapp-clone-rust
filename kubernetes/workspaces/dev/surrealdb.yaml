@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: surrealdb-helm-installation
+  name: surrealdb
   namespace: argocd
 
 spec:

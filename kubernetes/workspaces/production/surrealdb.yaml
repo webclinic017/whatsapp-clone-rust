@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: tidb
+  name: surrealdb
   namespace: argocd
 
 spec:
@@ -15,7 +15,9 @@ spec:
   source:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
     targetRevision: HEAD
-    path: kubernetes/workspaces/production/tidb
+    path: kubernetes/workspaces/production/surrealdb
+    plugin:
+      name: kustomize-enable-helm
 
   syncPolicy:
     automated:

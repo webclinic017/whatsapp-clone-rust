@@ -1,4 +1,4 @@
 resources:
   - ../../base
   - ./kubernetes-dashboard.yaml
-  - ./surrealdb.helm-installation.yaml
+  - ./surrealdb.yaml
