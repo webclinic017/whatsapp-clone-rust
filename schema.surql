@@ -28,6 +28,17 @@ USE NS authentication_microservice;
       DEFINE FIELD created_at ON TABLE users TYPE datetime
         DEFAULT time::now( );
 
+    DEFINE USER outboxer ON DATABASE
+      PASSWORD '1yp5m]NOU-da+s#'
+      ROLES EDITOR;
+
+    DEFINE TABLE outboxer SCHEMAFULL;
+
+      DEFINE FIELD message ON TABLE outboxer TYPE bytes;
+
+      DEFINE FIELD locked ON TABLE outboxer TYPE bool;
+      DEFINE FIELD locked_at ON TABLE outboxer TYPE datetime;
+
 ### Profile Microservice ###
 DEFINE NAMESPACE profile_microservice;
 USE NAMESPACE profile_microservice;

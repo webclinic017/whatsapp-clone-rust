@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: kubernetes-dashboard
+  name: surrealdb
   namespace: argocd
 
 spec:
@@ -10,12 +10,12 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: kubernetes-dashboard
+    namespace: surrealdb
 
   source:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
     targetRevision: HEAD
-    path: kubernetes/workspaces/dev/kubernetes-dashboard
+    path: kubernetes/base/surrealdb
 
   syncPolicy:
     automated:

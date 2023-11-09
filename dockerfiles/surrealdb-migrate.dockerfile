@@ -1,4 +1,4 @@
-## NOTE: The SurrealQL file must be mounted at /migrations/schema.surql.
+## NOTE: The SurrealQL file must be mounted at /migrations.surql.
 
 FROM ubuntu:latest
 
@@ -9,5 +9,5 @@ RUN apt-get update -y && \
 RUN curl -sSf https://install.surrealdb.com | sh
 
 ## Run Surrealdb migrations.
-CMD cat /migrations/schema.surql | \
-    /usr/local/bin/surreal sql --namespace root -u root -p password --multi -e ${ENDPOINT}
+CMD cat /migrations.surql | \
+    /usr/local/bin/surreal sql --namespace root --multi -e ${ENDPOINT}

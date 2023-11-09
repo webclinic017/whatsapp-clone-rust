@@ -1,0 +1,93 @@
+## TiDB is an open source distributed SQL database hat supports Hybrid Transactional and Analytical
+## Processing (HTAP) workloads. SurrealDB uses TiDB as its storage layer.
+## TiDB architecture - https://download.pingcap.com/images/docs/tidb-architecture-v6.png.
+
+apiVersion: pingcap.com/v1alpha1
+kind: TidbCluster
+metadata:
+  name: main
+  namespace: surrealdb
+
+spec:
+  version: v7.1.1
+  timezone: UTC
+
+  configUpdateStrategy: RollingUpdate
+  enableDynamicConfiguration: true
+
+  pvReclaimPolicy: Delete
+
+  ## Image used to do miscellaneous tasks as sidecar container, such as: execute sysctls when
+  ## PodSecurityContext is set for some components, requires `sysctl` installed.
+  helper:
+    image: alpine:3.16.0
+
+  ## TODO: Enable mutual TLS connection between TiDB cluster components.
+
+  ## The Placement Driver (PD) server is the metadata managing component of the entire cluster. It
+  ## stores metadata of real-time data distribution of every single TiKV node and the topology
+  ## structure of the entire TiDB cluster, provides the TiDB Dashboard management UI, and allocates
+  ## transaction IDs to distributed transactions. The PD server is "the brain" of the entire TiDB
+  ## cluster because it not only stores metadata of the cluster, but also sends data scheduling
+  ## command to specific TiKV nodes according to the data distribution state reported by TiKV nodes
+  ## in real time.
+  pd:
+    baseImage: pingcap/pd
+    replicas: 1
+
+    requests:
+      storage: 5Gi
+      cpu: 200m
+      memory: 200Mi
+    limits:
+      cpu: 400m
+      memory: 400Mi
+
+    config: |
+      [dashboard]
+        internal-proxy = false
+
+    maxFailoverCount: 0
+
+  ## The TiDB server is a stateless SQL layer that exposes the connection endpoint of the MySQL
+  ## protocol to the outside. The TiDB server receives SQL requests, performs SQL parsing and
+  ## optimization, and ultimately generates a distributed execution plan.
+  tidb:
+    baseImage: pingcap/tidb
+    replicas: 1
+
+    requests:
+      cpu: 200m
+      memory: 200Mi
+    limits:
+      cpu: 300m
+      memory: 300Mi
+
+    config: |
+      [performance]
+        tcp-keep-alive = true
+
+    service:
+      type: ClusterIP
+
+    maxFailoverCount: 0
+
+  ## The TiKV server is a distributed transactional key-value storage engine, responsible for
+  ## storing data.
+  tikv:
+    baseImage: pingcap/tikv
+    replicas: 1
+
+    config: |
+      log-level = "info"
+
+    maxFailoverCount: 0
+
+    requests:
+      storage: 10Gi
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      storage: 20Gi
+      cpu: 2000m
+      memory: 2Gi

@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: tidb-operator-helm-installation
+  namespace: argocd
+
+spec:
+  project: default
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: surrealdb
+
+  source:
+    repoURL: https://charts.pingcap.org
+    chart: tidb-operator
+    targetRevision: v1.4.5
+    helm:
+      releaseName: tidb-operator
+      valuesObject:
+        scheduler:
+          create: false
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

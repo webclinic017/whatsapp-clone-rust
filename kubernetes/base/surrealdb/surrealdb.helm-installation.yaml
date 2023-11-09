@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: surrealdb-helm-installation
+  namespace: argocd
+
+spec:
+  project: default
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: surrealdb
+
+  source:
+    repoURL: https://helm.surrealdb.com
+    chart: surrealdb
+    targetRevision: 0.2.0
+    helm:
+      releaseName: surrealdb
+      valuesObject:
+
+        surrealdb:
+          ## Datastore path
+          path: tikv://main-pd:2379
+
+          ## Initially there will be no authentication mechanism. When the surrealdb-migrate
+          ## Kubernetes Job will run, it will create a root user thus enforcing authentication.
+          auth: false
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 200m
+            memory: 200Mi
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

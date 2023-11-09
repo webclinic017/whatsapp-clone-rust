@@ -1,0 +1,33 @@
+## This Kubernetes Job runs migrations against SurrealDB.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: surrealdb-migrate
+  namespace: surrealdb
+
+spec:
+  ttlSecondsAfterFinished: 0
+
+  backoffLimit: 50
+  completions: 1
+
+  ## Pod template
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: surrealdb-migrate
+          image: archismanmridha/surrealdb-migrate:0.0.1
+          volumeMounts:
+            - mountPath: /migrations.surql
+              name: migrations
+              subPath: schema.surql
+              readOnly: true
+          env:
+            - name: ENDPOINT
+              value: ws://surrealdb:8000
+      volumes:
+        - name: migrations
+          secret:
+            secretName: surrealdb-schema
