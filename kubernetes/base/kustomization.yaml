@@ -4,3 +4,4 @@ resources:
   - ./bitnami-sealed-secrets.yaml
   - ./roles.yaml
   - ./surrealdb-migrate.yaml
+  - ./opa-gatekeeper.yaml

@@ -16,7 +16,6 @@ metadata:
     helm.sh/chart: argo-cd-5.46.8
   name: argocd-repo-server
   namespace: argocd
-  resourceVersion: "3368"
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
