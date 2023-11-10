@@ -74,6 +74,7 @@ jobs:
     permissions:
       packages: write
       contents: write
+      security-events: write
 
     strategy:
       matrix:
@@ -99,11 +100,11 @@ jobs:
         id: path-filter
         with:
           filters: |
-            sourcecode:
+            cancel:
               - '${{ matrix.microservice.path }}/**'
 
       - name: Cancel job if sourcecode didn't change
-        if: steps.path-filter.outputs.sourcecode == 'true'
+        if: steps.path-filter.outputs.cancel == 'true'
         run: exit 0
 
       - name: Set up QEMU
@@ -125,7 +126,7 @@ jobs:
           path: |
             /usr/local/cargo/registry/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.microservice.name }}-${{ hashFiles('**/Cargo.lock') }}
 
       ## It takes pretty long to build container images for the ARM64 platform (even when using QEMU),
       ## so skipping that one.
@@ -151,6 +152,10 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ matrix.microservice.name }}-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Remove cached folders from local machine
+        run: |
+          rm -rf /usr/local/cargo/registry/ target/
+
       ## Cosign is a command line utility that can sign and verify software artifact, such as
       ## container images and blobs.
       - name: Install Cosign
@@ -162,11 +167,15 @@ jobs:
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
-          echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
+          mkdir -p ~/.temp
+          echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > ~/.temp/cosign.key
           cosign sign --key cosign.key \
             -a "repo=whatsapp-clone" \
             -a "owner=Archisman-Mridha" \
             ghcr.io/archisman-mridha/whatsapp-clone-${{ matrix.microservice.name }}:${{ github.sha }} -y
+
+      - name: Create outputs directory
+        run: mkdir -p ./outputs/trivy
 
       - name: Scan container image for vulnerabilities
         uses: aquasecurity/trivy-action@master
@@ -175,7 +184,16 @@ jobs:
           ignore-unfixed: true
           vuln-type: os,library
           trivy-config: trivy.yaml
+          format: sarif
           output: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
+
+      ## The Trivy scan result will be uploaded to Github CodeQL only when code is being pushed to
+      ## the main branch.
+      - name: Upload the scan result to Github CodeQL
+        if: github.ref == 'refs/heads/main'
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
 
       - name: Upload the scan result as Github artifact
         uses: actions/upload-artifact@v3
@@ -183,15 +201,22 @@ jobs:
           name: trivy.${{ matrix.microservice.name }}-microservice.container-image.scan-result.sarif
           path: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
 
+      - name: Connect to upstream repository
+        run: |
+          git config --global user.name "Archisman-Mridha"
+          git config --global user.email "archismanmridha12345@gmail.com"
+          git config --global pull.rebase false
+
+          git pull origin main
+
       - name: Update container image tag in Kubernetes manifests
         run: |
           find kubernetes/base/microservices -type f -name "*.application.yaml" | while read -r file; do
             sed -i 's/whatsapp-clone-\(.*\):[[:alnum:]]\+/whatsapp-clone-\1:${{ github.sha }}/g' $file
           done
 
-          git config --global user.name "Archisman-Mridha" && \
-            git config --global user.email "archismanmridha12345@gmail.com"
-
-          git add . && \
-            git commit -m "🤖 Update container image tag for ${{ matrix.microservice.name }} to ${{ github.sha }}" && \
-            git push --set-upstream origin main
+      - name: Push changes to Github
+        run: |
+          git add .
+          git commit -m "🤖 Update container image tag for ${{ matrix.microservice.name }} to ${{ github.sha }}"
+          git push --set-upstream origin main

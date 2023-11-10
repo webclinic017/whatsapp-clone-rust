@@ -17,7 +17,7 @@ RUN apt update -y && \
 ## Build the application.
 ## Leverage a cache mount to /usr/local/cargo/registry/ for downloaded dependencies and a cache mount
 ## to /app/target/ for compiled dependencies which will speed up subsequent builds. Once built, copy
-## the executable to an output directory before the cache mounted /app/target is unmounted.
+## the executable to an output directory before the cache mounted at /app/target is unmounted.
 RUN --mount=type=bind,source=backend/microservices/profile,target=backend/microservices/profile \
     --mount=type=bind,source=build.rs,target=build.rs \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
