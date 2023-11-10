@@ -11,6 +11,9 @@ on:
     branches: [ dev ]
     types: [ opened, edited ]
 
+  ## Adding this allows us to trigger this workflow manually (Just for debugging purposes).
+  workflow_dispatch: { }
+
 jobs:
 
   scan_sourcecode:
