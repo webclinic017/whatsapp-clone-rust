@@ -48,8 +48,8 @@ jobs:
 
   build_push_and_sign_container_images:
     name: Build, push and sign container images
-    needs: detect-microservices-sourcecode-change
-    if: needs.detect-microservices-sourcecode-change.outputs.microservices == 'true'
+    needs: detect_microservices_sourcecode_change
+    if: needs.detect_microservices_sourcecode_change.outputs.microservices == 'true'
     runs-on: ubuntu-latest
     permissions:
       packages: write
