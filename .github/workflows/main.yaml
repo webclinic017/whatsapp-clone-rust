@@ -99,21 +99,21 @@ jobs:
         uses: dorny/paths-filter@v2
         id: path-filter
         with:
+          base: ${{ github.ref }}
           filters: |
-            cancel:
+            changed:
               - '${{ matrix.microservice.path }}/**'
 
-      - name: Cancel job if sourcecode didn't change
-        if: steps.path-filter.outputs.cancel == 'true'
-        run: exit 0
-
       - name: Set up QEMU
+        if: steps.path-filter.outputs.changed == 'true'
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
+        if: steps.path-filter.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v2
 
       - name: Login to GitHub Container Registry
+        if: steps.path-filter.outputs.changed == 'true'
         uses: docker/login-action@v2.1.0
         with:
           registry: ghcr.io
@@ -121,6 +121,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore Caches Cargo dependencies (if exists)
+        if: steps.path-filter.outputs.changed == 'true'
         uses: actions/cache/restore@v3
         with:
           path: |
@@ -131,6 +132,7 @@ jobs:
       ## It takes pretty long to build container images for the ARM64 platform (even when using QEMU),
       ## so skipping that one.
       - name: Build and push AMD64 container image
+        if: steps.path-filter.outputs.changed == 'true'
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -145,6 +147,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Cache Cargo dependencies
+        if: steps.path-filter.outputs.changed == 'true'
         uses: actions/cache@v3
         with:
           path: |
@@ -159,11 +162,13 @@ jobs:
       ## Cosign is a command line utility that can sign and verify software artifact, such as
       ## container images and blobs.
       - name: Install Cosign
+        if: steps.path-filter.outputs.changed == 'true'
         uses: sigstore/cosign-installer@v3.1.1
         with:
           cosign-release: v2.2.1
 
       - name: Sign the published container image
+        if: steps.path-filter.outputs.changed == 'true'
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
@@ -175,9 +180,11 @@ jobs:
             ghcr.io/archisman-mridha/whatsapp-clone-${{ matrix.microservice.name }}:${{ github.sha }} -y
 
       - name: Create outputs directory
+        if: steps.path-filter.outputs.changed == 'true'
         run: mkdir -p ./outputs/trivy
 
       - name: Scan container image for vulnerabilities
+        if: steps.path-filter.outputs.changed == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ghcr.io/archisman-mridha/whatsapp-clone-${{ matrix.microservice.name }}:${{ github.sha }}
@@ -187,21 +194,15 @@ jobs:
           format: sarif
           output: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
 
-      ## The Trivy scan result will be uploaded to Github CodeQL only when code is being pushed to
-      ## the main branch.
-      - name: Upload the scan result to Github CodeQL
-        if: github.ref == 'refs/heads/main'
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
-
       - name: Upload the scan result as Github artifact
+        if: steps.path-filter.outputs.changed == 'true'
         uses: actions/upload-artifact@v3
         with:
           name: trivy.${{ matrix.microservice.name }}-microservice.container-image.scan-result.sarif
           path: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
 
-      - name: Connect to upstream repository
+      - name: Update container image tag in Kubernetes manifests
+        if: steps.path-filter.outputs.changed == 'true'
         run: |
           git config --global user.name "Archisman-Mridha"
           git config --global user.email "archismanmridha12345@gmail.com"
@@ -209,14 +210,8 @@ jobs:
 
           git pull origin main
 
-      - name: Update container image tag in Kubernetes manifests
-        run: |
-          find kubernetes/base/microservices -type f -name "*.application.yaml" | while read -r file; do
-            sed -i 's/whatsapp-clone-\(.*\):[[:alnum:]]\+/whatsapp-clone-\1:${{ github.sha }}/g' $file
-          done
+          sed -i 's/whatsapp-clone-\(.*\):[[:alnum:]]\+/whatsapp-clone-\1:${{ github.sha }}/g' ${{ matrix.microservice.manifest }}
 
-      - name: Push changes to Github
-        run: |
           git add .
           git commit -m "🤖 Update container image tag for ${{ matrix.microservice.name }} to ${{ github.sha }}"
           git push --set-upstream origin main
