@@ -33,6 +33,22 @@ spec:
             ## which will also match the servicemonitors created.
             serviceMonitorSelectorNilUsesHelmValues: false
 
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  resources:
+                    requests:
+                      storage: 500Mi
+                  accessModes: [ ReadWriteOnce ]
+
+        alertmanager:
+          fullnameOverride: alertmanager
+          ingress:
+            enabled: false
+
+        grafana:
+          fullnameOverride: grafana
+
   syncPolicy:
     automated:
       prune: true
