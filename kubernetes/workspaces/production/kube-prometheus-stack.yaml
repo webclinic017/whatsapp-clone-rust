@@ -13,51 +13,13 @@ spec:
     namespace: prometheus
 
   source:
-    repoURL: https://prometheus-community.github.io/helm-charts
-    chart: kube-prometheus-stack
-    targetRevision: 52.0.0
-    helm:
-      releaseName: kube-prometheus-stack
-      valuesObject:
-
-        prometheus:
-          prometheusSpec:
-
-            ## If true, a nil or {} value for prometheus.prometheusSpec.podMonitorSelector will cause the
-            ## prometheus resource to be created with selectors based on values in the helm deployment,
-            ## which will also match the podmonitors created.
-            podMonitorSelectorNilUsesHelmValues: false
-
-            ## If true, a nil or {} value for prometheus.prometheusSpec.serviceMonitorSelector will cause
-            ## the prometheus resource to be created with selectors based on values in the helm deployment,
-            ## which will also match the servicemonitors created.
-            serviceMonitorSelectorNilUsesHelmValues: false
-
-            storageSpec:
-              volumeClaimTemplate:
-                spec:
-                  resources:
-                    requests:
-                      storage: 500Mi
-                  accessModes: [ ReadWriteOnce ]
-
-        alertmanager:
-          fullnameOverride: alertmanager
-          ingress:
-            enabled: false
-
-        grafana:
-          fullnameOverride: grafana
+    repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
+    targetRevision: HEAD
+    path: kubernetes/workspaces/production/kube-prometheus-stack
+    plugin:
+      name: kustomize-enable-helm
 
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-
----
-
-apiVersion: v1
-kind: Namespace
-
-metadata:
-  name: prometheus

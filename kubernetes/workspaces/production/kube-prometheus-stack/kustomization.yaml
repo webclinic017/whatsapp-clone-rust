@@ -1,0 +1,41 @@
+resources:
+  - ./namespace.yaml
+
+helmCharts:
+
+  - repo: https://prometheus-community.github.io/helm-charts
+    name: prometheus-operator-crds
+    releaseName: prometheus-operator-crds
+    namespace: prometheus
+    version: 6.0.0
+
+  - repo: https://prometheus-community.github.io/helm-charts
+    name: kube-prometheus-stack
+    version: 52.0.0
+    releaseName: kube-prometheus-stack
+    namespace: prometheus
+    valuesInline:
+
+      crds:
+        enabled: false
+
+      prometheus:
+        prometheusSpec:
+
+          ## If true, a nil or {} value for prometheus.prometheusSpec.podMonitorSelector will cause
+          ## the prometheus resource to be created with selectors based on values in the helm
+          ## deployment, which will also match the podmonitors created.
+          podMonitorSelectorNilUsesHelmValues: false
+
+          ## If true, a nil or {} value for prometheus.prometheusSpec.serviceMonitorSelector will
+          ## cause the prometheus resource to be created with selectors based on values in the helm
+          ## deployment, which will also match the servicemonitors created.
+          serviceMonitorSelectorNilUsesHelmValues: false
+
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                resources:
+                  requests:
+                    storage: 500Mi
+                accessModes: [ ReadWriteOnce ]
