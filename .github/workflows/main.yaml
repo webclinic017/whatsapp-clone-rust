@@ -149,7 +149,7 @@ jobs:
           path: |
             /usr/local/cargo/registry/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.microservice.name }}-${{ hashFiles('**/Cargo.lock') }}
 
       ## Cosign is a command line utility that can sign and verify software artifact, such as
       ## container images and blobs.
@@ -182,3 +182,16 @@ jobs:
         with:
           name: trivy.${{ matrix.microservice.name }}-microservice.container-image.scan-result.sarif
           path: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
+
+      - name: Update container image tag in Kubernetes manifests
+        run: |
+          find kubernetes/base/microservices -type f -name "*.application.yaml" | while read -r file; do
+            sed -i 's/whatsapp-clone-\(.*\):[[:alnum:]]\+/whatsapp-clone-\1:${{ github.sha }}/g' $file
+          done
+
+          git config --global user.name "Archisman-Mridha" && \
+            git config --global user.email "archismanmridha12345@gmail.com"
+
+          git add . && \
+            git commit -m "🤖 Update container image tag for ${{ matrix.microservice.name }} to ${{ github.sha }}" && \
+            git push --set-upstream origin main
