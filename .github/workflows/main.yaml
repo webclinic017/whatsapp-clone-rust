@@ -1,0 +1,103 @@
+name: Main
+
+## This Github Action workflow is triggered, if code is pushed to the main branch or a Pull Request
+## (PR) is opened / edited from the dev branch.
+## In real world scenario, pushing directly to the main branch should be blocked.
+on:
+  push:
+    branches: [ main ]
+    paths: [ backend, frontend ]
+  pull_request:
+    branches: [ dev ]
+    types: [ opened, edited ]
+
+jobs:
+
+  scan_sourcecode:
+    name: Scanning sourcecode to find vulberabilities and exposed secrets
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability and secret scanner in fs mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          trivy-config: trivy.yaml
+
+  detect_microservices_sourcecode_change:
+    name: Detect if microservices related sourcecode has changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            microservices:
+              - 'backend/**'
+              - 'frontend/**'
+    outputs:
+      backend: ${{ steps.filter.outputs.microservices }}
+
+  build_push_and_sign_container_images:
+    name: Build, push and sign container images
+    needs: detect-microservices-sourcecode-change
+    if: needs.detect-microservices-sourcecode-change.outputs.microservices == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        dockerfile:
+          - path: backend/microservices/authentication/Dockerfile
+            microservice: authentication-microservice
+          - path: backend/microservices/authentication/Dockerfile
+            microservice: authentication-microservice
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2.1.0
+        with:
+          registry: ghcr.io
+          username: Archisman-Mridha
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push AMD64 and ARM64 based container image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ${{ matrix.dockerfile.path }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/Archisman-Mridha/whatsapp-clone-${{ matrix.dockerfile.microservice }}:${{ github.sha }}
+          ## Experimental cache exporter for GitHub Actions provided by buildx and BuildKit.
+          ## It uses the GitHub Cache API to fetch and load the Docker layer cache blobs across
+          ## builds.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      ## Cosign is a command line utility that can sign and verify software artifact, such as
+      ## container images and blobs.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Write cosign signing key (stored in Github Secrets) to disk
+        run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
+
+      - name: Sign the published container image
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: cosign sign --key cosign.key ghcr.io/Archisman-Mridha/whatsapp-clone-${{ matrix.dockerfile.microservice }}:${{ github.sha }}
