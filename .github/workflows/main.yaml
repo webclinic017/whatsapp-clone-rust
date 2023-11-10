@@ -17,12 +17,18 @@ on:
 jobs:
 
   scan_sourcecode:
-    name: Scanning sourcecode to find vulberabilities and exposed secrets
+    name: Scanning sourcecode to find vulberabilities, misconfigurations and exposed secrets
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      security-events: write
     steps:
 
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Create outputs directory
+        run: mkdir -p ./outputs/trivy
 
       - name: Run Trivy vulnerability and secret scanner in fs mode
         uses: aquasecurity/trivy-action@master
@@ -30,6 +36,42 @@ jobs:
           scan-type: fs
           scan-ref: .
           trivy-config: trivy.yaml
+          format: sarif
+          output: ./outputs/trivy/fs-scan.result.sarif
+
+      - name: Upload the scan result as Github artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: fs-scan.result.sarif
+          path: ./outputs/trivy/fs-scan.result.sarif
+
+      - name: Detect IaC vulnerabilities and misconfigurations using Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: .
+          trivy-config: trivy.yaml
+          format: sarif
+          output: ./outputs/trivy/config-scan.result.sarif
+
+      - name: Upload the scan result as Github artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: config-scan.result.sarif
+          path: ./outputs/trivy/config-scan.result.sarif
+
+      ## The Trivy scan results will be uploaded to Github CodeQL only when code is being pushed to
+      ## the main branch.
+      - name: Upload the scan results to Github CodeQL
+        if: github.ref == 'refs/heads/main'
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ./outputs/trivy
+
+
+## BUILD, PUSH, SIGN AND SCAN CONTAINER IMAGES ##
+## If sourcecode of any of the microservices has changed, only then we will rebuild, push, sign
+## and scan the container images.
 
   detect_microservices_sourcecode_change:
     name: Detect if microservices related sourcecode has changed
@@ -46,8 +88,8 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.microservices }}
 
-  build_push_and_sign_container_images:
-    name: Build, push and sign container images
+  build_push_sign_and_scan_container_images:
+    name: Build, push, sign and scan container images
     needs: detect_microservices_sourcecode_change
     if: needs.detect_microservices_sourcecode_change.outputs.microservices == 'true'
     runs-on: ubuntu-latest
