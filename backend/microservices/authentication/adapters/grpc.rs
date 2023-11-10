@@ -53,11 +53,19 @@ impl AuthenticationService for AuthenticationServiceImpl {
   }
 
   async fn verify_user(&self, request: Request<VerifyUserRequest>) ->  Result<Response<( )> ,Status> {
-    unimplemented!( )
+    let request= request.into_inner( );
+
+    self.usecases.verifyUser(&request).await
+      .map(|_| Response::new(( )))
+      .map_err(mapToGrpcError)
   }
 
   async fn signin(&self, request: Request<SigninRequest>) ->  Result<Response<SigninResponse> ,Status> {
-    unimplemented!( )
+    let request= request.into_inner( );
+
+    self.usecases.signin(&request).await
+      .map(|output| Response::new(SigninResponse { jwt: output.jwt }))
+      .map_err(mapToGrpcError)
   }
 }
 

@@ -6,7 +6,6 @@ name: Main
 on:
   push:
     branches: [ main ]
-    paths: [ backend, frontend ]
   pull_request:
     branches: [ dev ]
     types: [ opened, edited ]
@@ -37,13 +36,13 @@ jobs:
           scan-ref: .
           trivy-config: trivy.yaml
           format: sarif
-          output: ./outputs/trivy/fs-scan.result.sarif
+          output: ./outputs/trivy/fs.scan-result.sarif
 
       - name: Upload the scan result as Github artifact
         uses: actions/upload-artifact@v3
         with:
-          name: fs-scan.result.sarif
-          path: ./outputs/trivy/fs-scan.result.sarif
+          name: trivy.fs.scan-result.sarif
+          path: ./outputs/trivy/fs.scan-result.sarif
 
       - name: Detect IaC vulnerabilities and misconfigurations using Trivy
         uses: aquasecurity/trivy-action@master
@@ -52,13 +51,13 @@ jobs:
           scan-ref: .
           trivy-config: trivy.yaml
           format: sarif
-          output: ./outputs/trivy/config-scan.result.sarif
+          output: ./outputs/trivy/config.scan-result.sarif
 
       - name: Upload the scan result as Github artifact
         uses: actions/upload-artifact@v3
         with:
-          name: config-scan.result.sarif
-          path: ./outputs/trivy/config-scan.result.sarif
+          name: trivy.config.scan-result.sarif
+          path: ./outputs/trivy/config.scan-result.sarif
 
       ## The Trivy scan results will be uploaded to Github CodeQL only when code is being pushed to
       ## the main branch.
@@ -68,44 +67,44 @@ jobs:
         with:
           sarif_file: ./outputs/trivy
 
-
-## BUILD, PUSH, SIGN AND SCAN CONTAINER IMAGES ##
-## If sourcecode of any of the microservices has changed, only then we will rebuild, push, sign
-## and scan the container images.
-
-  detect_microservices_sourcecode_change:
-    name: Detect if microservices related sourcecode has changed
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: |
-            microservices:
-              - 'backend/**'
-              - 'frontend/**'
-    outputs:
-      backend: ${{ steps.filter.outputs.microservices }}
-
   build_push_sign_and_scan_container_images:
     name: Build, push, sign and scan container images
-    needs: detect_microservices_sourcecode_change
-    if: needs.detect_microservices_sourcecode_change.outputs.microservices == 'true'
     runs-on: ubuntu-latest
+
     permissions:
       packages: write
+      contents: write
+
     strategy:
       matrix:
-        dockerfile:
-          - path: backend/microservices/authentication/Dockerfile
-            microservice: authentication-microservice
-          - path: backend/microservices/authentication/Dockerfile
-            microservice: authentication-microservice
+        microservice:
+
+          - name: authentication-microservice
+            path: backend/microservices/authentication
+            manifest: kubernetes/base/microservices/authentication-microservice.application.yaml
+
+          - name: profile-microservice
+            path: backend/microservices/profile
+            manifest: kubernetes/base/microservices/profile-microservice.application.yaml
+
     steps:
 
       - name: Checkout code
         uses: actions/checkout@v3
+
+      ## If sourcecode of the microservice has changed, only then we will rebuild, push, sign
+      ## and scan the container image.
+      - name: Detect sourcecode change
+        uses: dorny/paths-filter@v2
+        id: path-filter
+        with:
+          filters: |
+            sourcecode:
+              - '${{ matrix.microservice.path }}/**'
+
+      - name: Cancel job if sourcecode didn't change
+        if: steps.path-filter.outputs.sourcecode == 'true'
+        run: exit 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -117,32 +116,69 @@ jobs:
         uses: docker/login-action@v2.1.0
         with:
           registry: ghcr.io
-          username: Archisman-Mridha
+          username: archisman-mridha
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push AMD64 and ARM64 based container image
+      - name: Restore Caches Cargo dependencies (if exists)
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            /usr/local/cargo/registry/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      ## It takes pretty long to build container images for the ARM64 platform (even when using QEMU),
+      ## so skipping that one.
+      - name: Build and push AMD64 container image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ${{ matrix.dockerfile.path }}
-          platforms: linux/amd64,linux/arm64
+          file: ${{ matrix.microservice.path }}/Dockerfile
+          platforms: linux/amd64
           push: true
-          tags: ghcr.io/Archisman-Mridha/whatsapp-clone-${{ matrix.dockerfile.microservice }}:${{ github.sha }}
+          tags: ghcr.io/archisman-mridha/whatsapp-clone-${{ matrix.microservice.name }}:${{ github.sha }}
           ## Experimental cache exporter for GitHub Actions provided by buildx and BuildKit.
           ## It uses the GitHub Cache API to fetch and load the Docker layer cache blobs across
           ## builds.
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            /usr/local/cargo/registry/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       ## Cosign is a command line utility that can sign and verify software artifact, such as
       ## container images and blobs.
-      - name: Install cosign
+      - name: Install Cosign
         uses: sigstore/cosign-installer@v3.1.1
-
-      - name: Write cosign signing key (stored in Github Secrets) to disk
-        run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
+        with:
+          cosign-release: v2.2.1
 
       - name: Sign the published container image
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-        run: cosign sign --key cosign.key ghcr.io/Archisman-Mridha/whatsapp-clone-${{ matrix.dockerfile.microservice }}:${{ github.sha }}
+        run: |
+          echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
+          cosign sign --key cosign.key \
+            -a "repo=whatsapp-clone" \
+            -a "owner=Archisman-Mridha" \
+            ghcr.io/archisman-mridha/whatsapp-clone-${{ matrix.microservice.name }}:${{ github.sha }} -y
+
+      - name: Scan container image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/archisman-mridha/whatsapp-clone-${{ matrix.microservice.name }}:${{ github.sha }}
+          ignore-unfixed: true
+          vuln-type: os,library
+          trivy-config: trivy.yaml
+          output: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
+
+      - name: Upload the scan result as Github artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy.${{ matrix.microservice.name }}-microservice.container-image.scan-result.sarif
+          path: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif

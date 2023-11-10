@@ -17,7 +17,7 @@ RUN apt update -y && \
 ## Build the application.
 ## Leverage a cache mount to /usr/local/cargo/registry/ for downloaded dependencies and a cache mount
 ## to /app/target/ for compiled dependencies which will speed up subsequent builds. Once built, copy
-## the executable to an output directory before the cache mounted /app/target is unmounted.
+## the executable to an output directory before the cache mounted at /app/target is unmounted.
 RUN --mount=type=bind,source=backend/microservices/authentication,target=backend/microservices/authentication \
     --mount=type=bind,source=build.rs,target=build.rs \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
@@ -33,20 +33,7 @@ EOF
 
 ### STAGE 2 - Running the application ###
 
-FROM debian:bullseye-slim AS final
-
-## Create a non-privileged user that the app will run under.
-## See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
-USER appuser
+FROM scratch AS final
 
 ## Copy the executable from the "build" stage.
 COPY --from=build /bin/server /bin/

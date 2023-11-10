@@ -64,7 +64,7 @@ pub mod usecases {
       self.db.verifyUser(args).await
     }
 
-    pub async fn signin(&self, args: SigninRequest) -> Result<SigninResponse> {
+    pub async fn signin(&self, args: &SigninRequest) -> Result<SigninResponse> {
       let id= self.db.checkPassword(&args.identifier, &args.password).await?;
 
       let jwt= createJwt(id)?;
@@ -77,4 +77,7 @@ pub mod usecases {
       self.db.verifiedUserWithIdExists(&id).await
     }
   }
+
+  // validateUserRegistrationDetails
+  fn validateUserRegistrationDetails( ) { }
 }
