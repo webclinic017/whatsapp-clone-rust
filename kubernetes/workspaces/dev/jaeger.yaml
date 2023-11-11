@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: jaeger
+  namespace: argocd
+
+spec:
+  project: default
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: jaeger
+
+  source:
+    repoURL: https://jaegertracing.github.io/helm-charts
+    chart: jaeger
+    targetRevision: 0.72.0
+    helm:
+      releaseName: jaeger
+      valuesObject:
+
+        collector:
+          service:
+            otlp:
+              grpc:
+                name: otp-grpc
+                port: 4317
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

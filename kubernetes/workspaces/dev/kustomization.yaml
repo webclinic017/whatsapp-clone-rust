@@ -2,3 +2,4 @@ resources:
   - ../../base
   - ./kubernetes-dashboard.yaml
   - ./surrealdb.yaml
+  - ./jaeger.yaml
