@@ -36,13 +36,13 @@ jobs:
           scan-ref: .
           trivy-config: trivy.yaml
           format: sarif
-          output: ./outputs/trivy/fs.scan-result.sarif
+          output: ./outputs/trivy/fs-scan-result.sarif
 
       - name: Upload the scan result as Github artifact
         uses: actions/upload-artifact@v3
         with:
-          name: trivy.fs.scan-result.sarif
-          path: ./outputs/trivy/fs.scan-result.sarif
+          name: trivy.fs-scan-result.sarif
+          path: ./outputs/trivy/fs-scan-result.sarif
 
       - name: Detect IaC vulnerabilities and misconfigurations using Trivy
         uses: aquasecurity/trivy-action@master
@@ -51,13 +51,13 @@ jobs:
           scan-ref: .
           trivy-config: trivy.yaml
           format: sarif
-          output: ./outputs/trivy/config.scan-result.sarif
+          output: ./outputs/trivy/config-scan-result.sarif
 
       - name: Upload the scan result as Github artifact
         uses: actions/upload-artifact@v3
         with:
-          name: trivy.config.scan-result.sarif
-          path: ./outputs/trivy/config.scan-result.sarif
+          name: trivy.config-scan-result.sarif
+          path: ./outputs/trivy/config-scan-result.sarif
 
       ## The Trivy scan results will be uploaded to Github CodeQL only when code is being pushed to
       ## the main branch.
@@ -192,14 +192,14 @@ jobs:
           vuln-type: os,library
           trivy-config: trivy.yaml
           format: sarif
-          output: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
+          output: ./outputs/trivy/${{ matrix.microservice.name }}.container-image-scan-result.sarif
 
       - name: Upload the scan result as Github artifact
         if: steps.path-filter.outputs.changed == 'true'
         uses: actions/upload-artifact@v3
         with:
-          name: trivy.${{ matrix.microservice.name }}-microservice.container-image.scan-result.sarif
-          path: ./outputs/trivy/${{ matrix.microservice.name }}.container-image.scan-result.sarif
+          name: trivy.${{ matrix.microservice.name }}-microservice.container-image-scan-result.sarif
+          path: ./outputs/trivy/${{ matrix.microservice.name }}.container-image-scan-result.sarif
 
       - name: Update container image tag in Kubernetes manifests
         if: steps.path-filter.outputs.changed == 'true'
