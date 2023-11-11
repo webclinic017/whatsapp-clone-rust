@@ -1,0 +1,11 @@
+source:
+  uri: surrealdb:8000
+  namespace: authentication_microservice
+  database: authentication_microservice
+  user: outboxer
+  password: 1yp5m]NOU-da+s#
+  table: outboxer
+
+sink:
+  uri: amqp://default:password@rabbitmq:5672/
+  queue: for-profile-microservice
