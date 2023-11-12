@@ -9,3 +9,4 @@ resources:
   - ./emissary-ingress.yaml
   - ./falco.yaml
   - ./jaeger.yaml
+  - ./metrics-server.yaml
