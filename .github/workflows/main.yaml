@@ -174,7 +174,7 @@ jobs:
         run: |
           mkdir -p ~/.temp
           echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > ~/.temp/cosign.key
-          cosign sign --key cosign.key \
+          cosign sign --key ~/.temp/cosign.key \
             -a "repo=whatsapp-clone" \
             -a "owner=Archisman-Mridha" \
             ghcr.io/archisman-mridha/whatsapp-clone-${{ matrix.microservice.name }}:${{ github.sha }} -y

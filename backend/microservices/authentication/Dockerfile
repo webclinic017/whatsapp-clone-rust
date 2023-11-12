@@ -31,9 +31,23 @@ cargo build --bin authentication-microservice --locked --release
 cp ./target/release/authentication-microservice /bin/server
 EOF
 
+CMD ["/bin/server"]
+
 ### STAGE 2 - Running the application ###
 
-FROM scratch AS final
+FROM debian AS final
+
+## Create non-privileged user.
+ARG UID=10001
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    default
+USER default
 
 ## Copy the executable from the "build" stage.
 COPY --from=build /bin/server /bin/
