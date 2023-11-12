@@ -297,10 +297,13 @@ func(c *Controller) createDeployment(ctx context.Context, application *v1alpha1.
 // createHorizontalPodAutoscaler creates the Kubernetes Horizontal Pod Autoscaler for an Application
 // resource.
 func(c *Controller) createHorizontalPodAutoscaler(ctx context.Context, application *v1alpha1.Application) error {
-	name := application.Name
-	namespace := application.Namespace
+	var (
+		name= application.Name
+		namespace= application.Namespace
 
-	var averageCpuUtilization int32= 60
+		averageCpuUtilization int32= 80
+		averageMemoryUtilization int32= 80
+	)
 
 	horizontalPodAutoscalerObject := &autoscalingV2.HorizontalPodAutoscaler{
 
@@ -335,11 +338,22 @@ func(c *Controller) createHorizontalPodAutoscaler(ctx context.Context, applicati
 						},
 					},
 				},
+				{
+					Type: autoscalingV2.ContainerResourceMetricSourceType,
+					Resource: &autoscalingV2.ResourceMetricSource{
+						Name: "memory",
+						Target: autoscalingV2.MetricTarget{
+							Type: autoscalingV2.UtilizationMetricType,
+							AverageUtilization: &averageMemoryUtilization,
+						},
+					},
+				},
 			},
 		},
 	}
 
-	_, err := c.kubeclient.AutoscalingV2( ).HorizontalPodAutoscalers(namespace).Create(ctx, horizontalPodAutoscalerObject, metav1.CreateOptions{ })
+	_, err := c.kubeclient.AutoscalingV2( ).HorizontalPodAutoscalers(namespace).
+												 									Create(ctx, horizontalPodAutoscalerObject, metav1.CreateOptions{ })
 	return err
 }
 
