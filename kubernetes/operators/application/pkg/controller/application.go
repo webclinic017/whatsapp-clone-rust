@@ -240,6 +240,11 @@ func(c *Controller) createDeployment(ctx context.Context, application *v1alpha1.
 					Image: application.Spec.Image,
 					ImagePullPolicy: coreV1.PullIfNotPresent,
 
+					Resources: coreV1.ResourceRequirements{
+						Requests: application.Spec.Resources,
+						Limits: application.Spec.Resources,
+					},
+
 					EnvFrom: []coreV1.EnvFromSource{
 						{
 							SecretRef: &coreV1.SecretEnvSource{
@@ -257,8 +262,6 @@ func(c *Controller) createDeployment(ctx context.Context, application *v1alpha1.
 							Protocol: "TCP",
 						},
 					},
-
-					// TODO: Configure Pod resource requests and limits.
 				},
 			},
 		},
@@ -278,7 +281,19 @@ func(c *Controller) createDeployment(ctx context.Context, application *v1alpha1.
 		Spec: appsV1.DeploymentSpec{
 			Replicas: &application.Spec.Replicas.Min,
 
-			// TODO: Determine Deployment strategy.
+			// The rolling update ensures that the application remains available throughout the update
+			// process by gradually replacing old pods with new ones, without causing downtime.
+			Strategy: appsV1.DeploymentStrategy{
+				Type: appsV1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsV1.RollingUpdateDeployment{
+
+					// Maximum number of pods that can be unavailable during the update.
+					MaxUnavailable: &intstr.IntOrString{
+						Type: intstr.Int,
+						IntVal: application.Spec.Replicas.Max - application.Spec.Replicas.Min,
+					},
+				},
+			},
 
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{

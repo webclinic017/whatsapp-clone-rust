@@ -33,8 +33,10 @@ spec:
           spec:
             properties:
               image:
+                description: Container image.
                 type: string
               port:
+                description: gRPC server port to be exposed by each container.
                 format: int32
                 type: integer
               replicas:
@@ -46,7 +48,20 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              resources:
+                additionalProperties:
+                  anyOf:
+                  - type: integer
+                  - type: string
+                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                  x-kubernetes-int-or-string: true
+                description: ResourceList is a set of (resource name, quantity) pairs.
+                type: object
               secretName:
+                description: Name of the Kubernetes Secret that the developer needs
+                  to create. It must contain all the environment variables required
+                  by each container. Those environment variables will be mounted to
+                  each container.
                 type: string
             type: object
         type: object

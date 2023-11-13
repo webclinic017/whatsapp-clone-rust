@@ -1,6 +1,9 @@
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 type (
 	// +genclient
@@ -21,10 +24,20 @@ type (
 	}
 
 	ApplicationSpec struct {
-		Image string					`json:"image,omitempty"`
+		// Container image.
+		Image string `json:"image,omitempty"`
+
 		Replicas ReplicasSpec `json:"replicas,omitempty"`
-		SecretName string			`json:"secretName,omitempty"`
-		Port int32						`json:"port,omitempty"`
+
+		Resources v1.ResourceList `json:"resources,omitempty"`
+
+		// gRPC server port to be exposed by each container.
+		Port int32 `json:"port,omitempty"`
+
+		// Name of the Kubernetes Secret that the developer needs to create. It must contain all the
+		// environment variables required by each container. Those environment variables will be mounted
+		// to each container.
+		SecretName string `json:"secretName,omitempty"`
 	}
 
 	ReplicasSpec struct {
