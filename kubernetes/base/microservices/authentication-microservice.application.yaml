@@ -5,7 +5,7 @@ metadata:
   namespace: microservices
 
 spec:
-  image: ghcr.io/archisman-mridha/whatsapp-clone-authentication-microservice:92d7378f11a03b314a49fb2f85236b9b2eca403d
+  image: ghcr.io/archisman-mridha/whatsapp-clone-authentication-microservice:4ee1e52cfd722b83b12dd6f9562cb538dabe3228
   replicas:
     min: 1
     max: 3
