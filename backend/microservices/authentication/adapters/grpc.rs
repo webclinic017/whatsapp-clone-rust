@@ -1,3 +1,5 @@
+use autometrics::autometrics;
+use tokio::spawn;
 use tonic::{transport::Server, codec::CompressionEncoding, Request, Response, Status, async_trait, Code};
 use crate::{
   CONFIG,
@@ -5,6 +7,7 @@ use crate::{
   THREAD_CANCELLATION_TOKEN,
   domain::usecases::Usecases, utils::SERVER_ERROR
 };
+use tracing::instrument;
 
 const MAX_REQUEST_SIZE: usize= 512; //bytes
 
@@ -28,12 +31,15 @@ impl GrpcAdapter {
       .expect("Error building gRPC reflection service")
       .max_decoding_message_size(MAX_REQUEST_SIZE);
 
-    println!("Starting gRPC server");
+    println!("INFO: Starting gRPC server");
 
-    Server::builder( )
-      .add_service(reflectionService)
-      .serve_with_shutdown(address, THREAD_CANCELLATION_TOKEN.clone( ).cancelled( ))
-      .await.expect("ERROR: starting gRPC server");
+    spawn(async move {
+      Server::builder( )
+        .add_service(authenticationService)
+        .add_service(reflectionService)
+        .serve_with_shutdown(address, THREAD_CANCELLATION_TOKEN.clone( ).cancelled( ))
+        .await.expect("ERROR: starting gRPC server");
+    });
   }
 }
 
@@ -44,6 +50,8 @@ struct AuthenticationServiceImpl {
 #[async_trait]
 impl AuthenticationService for AuthenticationServiceImpl {
 
+  #[instrument(name = "StartRegistration", skip(self))]
+  #[autometrics]
   async fn start_registration(&self, request: Request<StartRegistrationRequest>) ->  Result<Response<( )> ,Status> {
     let request= request.into_inner( );
 
@@ -52,6 +60,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
       .map_err(mapToGrpcError)
   }
 
+  #[instrument(name = "VerifyUser", skip(self))]
+  #[autometrics]
   async fn verify_user(&self, request: Request<VerifyUserRequest>) ->  Result<Response<( )> ,Status> {
     let request= request.into_inner( );
 
@@ -60,6 +70,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
       .map_err(mapToGrpcError)
   }
 
+  #[instrument(name = "Signin", skip(self))]
+  #[autometrics]
   async fn signin(&self, request: Request<SigninRequest>) ->  Result<Response<SigninResponse> ,Status> {
     let request= request.into_inner( );
 

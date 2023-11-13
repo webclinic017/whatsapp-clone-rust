@@ -15,14 +15,16 @@ mod adapters;
 mod domain;
 
 use std::process::exit;
-use adapters::{SurrealdbAdapter, GrpcAdapter};
+use adapters::{SurrealdbAdapter, GrpcAdapter, MetricsServer, Tracer};
 use domain::usecases::Usecases;
 use lazy_static::lazy_static;
-use tokio::{spawn, signal};
+use tokio::signal;
 use tokio_util::sync::CancellationToken;
 
 pub struct Config {
   pub GRPC_SERVER_PORT: String,
+  pub METRICS_SERVER_PORT: String,
+  pub JAEGER_COLLECTOR_URL: String,
   pub SURREALDB_URL: String,
   pub SURREALDB_PASSWORD: String
 }
@@ -36,6 +38,8 @@ lazy_static! {
     }
 
     Config {
+      METRICS_SERVER_PORT: utils::getEnv("METRICS_SERVER_PORT"),
+      JAEGER_COLLECTOR_URL: utils::getEnv("JAEGER_COLLECTOR_URL"),
       GRPC_SERVER_PORT: utils::getEnv("GRPC_SERVER_PORT"),
       SURREALDB_URL: utils::getEnv("SURREALDB_URL"),
       SURREALDB_PASSWORD: utils::getEnv("SURREALDB_PASSWORD")
@@ -51,9 +55,10 @@ async fn main( ) {
 
   let usecases= Box::new(Usecases::new(surrealdbAdapter));
 
-  spawn(async move {
-    GrpcAdapter::startServer(usecases).await;
-  });
+  MetricsServer::new( ).await;
+  Tracer::new( );
+
+  GrpcAdapter::startServer(usecases).await;
 
   /* Gracefully shutdown on receiving program shutdown signal. */ {
     let error= signal::ctrl_c( ).await.err( );

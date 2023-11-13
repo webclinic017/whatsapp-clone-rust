@@ -17,6 +17,7 @@ path = "./backend/microservices/profile/main.rs"
 anyhow = "1.0.75"
 argon2 = "0.5.2"
 async-trait = "0.1.74"
+autometrics = { version = "0.6.0", features = ["prometheus-exporter"] }
 chrono = "0.4.31"
 derive_more = { version = "0.99.17", features = ["constructor"], default-features = false }
 dotenv = "0.15.0"
@@ -24,6 +25,9 @@ fake = "2.9.1"
 jsonwebtoken = "9.1.0"
 lazy_static = "1.4.0"
 mockall = "0.11.4"
+opentelemetry_sdk = { version = "0.21.0", features = ["rt-tokio"] }
+opentelemetry-semantic-conventions = "0.13.0"
+opentelemetry-otlp = { version = "0.14.0", features = ["grpc-tonic"] }
 prost = "0.12.1"
 rand = "0.8.5"
 serde = "1.0.190"
@@ -33,8 +37,13 @@ tokio = { version = "1.33.0", features = ["rt-multi-thread", "macros", "signal"]
 tokio-util = "0.7.10"
 tonic = { version = "0.10.2", features = ["gzip"] }
 tonic-reflection = "0.10.2"
+tracing-subscriber = "0.3.17"
 uuid = "1.5.0"
 validator = "0.16.1"
+tracing-opentelemetry = "0.22.0"
+opentelemetry = { version = "0.21.0", default-features = false, features = ["trace"] }
+tracing = "0.1.40"
+axum = "0.6.20"
 
 [build-dependencies]
 tonic-build = "0.10.2"

@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use surrealdb::{Surreal, engine::remote::ws::{Client, Ws}, opt::auth::Namespace};
 use crate::{CONFIG, domain::ports::{ProfilesRepository, Profile}, utils::toServerError, proto::UserRegisteredEvent};
 use serde::Serialize;
+use tracing::instrument;
 
 pub struct SurrealdbAdapter {
   connection: Surreal<Client>
@@ -36,6 +37,7 @@ impl SurrealdbAdapter {
 #[async_trait]
 impl ProfilesRepository for SurrealdbAdapter {
 
+  #[instrument(name = "CreateProfile", skip(self))]
   async fn createProfile(&self, args: UserRegisteredEvent) -> Result<( )> {
 
     #[derive(Serialize)]
@@ -59,6 +61,7 @@ impl ProfilesRepository for SurrealdbAdapter {
     Ok(( ))
   }
 
+  #[instrument(name = "SearchProfiles", skip(self))]
   async fn searchProfiles(&self, searchQuery: &str) -> Result<Vec<Profile>> {
     let query=
       "SELECT * FROM profiles WHERE name @@ $query OR username @@ $query";
@@ -78,6 +81,7 @@ impl ProfilesRepository for SurrealdbAdapter {
     Ok(profiles)
   }
 
+  #[instrument(name = "GetProfileByUserId", skip(self))]
   async fn getProfileByUserId(&self, userId: &str) -> Result<Profile> {
     let query=
       "SELECT * FROM profiles WHERE userId= $user_id";

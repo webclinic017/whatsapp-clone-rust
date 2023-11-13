@@ -1,10 +1,14 @@
-use tonic::{transport::Server, codec::CompressionEncoding, Status, async_trait, Code, Request, Response};
+use autometrics::autometrics;
+use tokio::spawn;
+use tonic::{transport::Server, codec::CompressionEncoding, Status, Code, Request, Response};
+use async_trait::async_trait;
 use crate::{
   CONFIG,
   proto::{*, profile_service_server::{ProfileService, ProfileServiceServer}},
   THREAD_CANCELLATION_TOKEN,
   domain::{usecases::Usecases, ports}, utils::SERVER_ERROR
 };
+use tracing::instrument;
 
 const MAX_REQUEST_SIZE: usize= 512; //bytes
 
@@ -30,11 +34,13 @@ impl GrpcAdapter {
 
     println!("Starting gRPC server");
 
-    Server::builder( )
-      .add_service(profileService)
-      .add_service(reflectionService)
-      .serve_with_shutdown(address, THREAD_CANCELLATION_TOKEN.clone( ).cancelled( ))
-      .await.expect("ERROR: starting gRPC server");
+    spawn(async move {
+      Server::builder( )
+        .add_service(profileService)
+        .add_service(reflectionService)
+        .serve_with_shutdown(address, THREAD_CANCELLATION_TOKEN.clone( ).cancelled( ))
+        .await.expect("ERROR: starting gRPC server");
+    });
   }
 }
 
@@ -45,6 +51,8 @@ struct ProfileServiceImpl {
 #[async_trait]
 impl ProfileService for ProfileServiceImpl {
 
+  #[instrument(name = "SearchProfiles", skip(self))]
+  #[autometrics]
   async fn search_profiles(&self, request: Request<SearchProfilesRequest>) -> Result<Response<SearchProfilesResponse>, Status> {
     let request= request.into_inner( );
 
@@ -60,6 +68,8 @@ impl ProfileService for ProfileServiceImpl {
       .map_err(mapToGrpcError)
   }
 
+  #[instrument(name = "GetProfileByUserId", skip(self))]
+  #[autometrics]
   async fn get_profile_by_user_id(&self, request: Request<GetProfileByUserIdRequest>) -> Result<Response<GetProfileByUserIdResponse>, Status> {
     let request= request.into_inner( );
 

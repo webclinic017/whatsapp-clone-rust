@@ -7,6 +7,7 @@ use surrealdb::{Surreal, engine::remote::ws::{Ws, Client}, opt::auth::Namespace,
 use serde::{Serialize, Deserialize};
 use validator::validate_email;
 use crate::{CONFIG, proto::{StartRegistrationRequest, VerifyUserRequest}, domain::ports::UsersRepository, utils::toServerError};
+use tracing::instrument;
 
 lazy_static! {
   static ref ARGON2: Argon2<'static> = Argon2::default( );
@@ -60,7 +61,7 @@ impl SurrealdbAdapter {
   }
 
   // hasUserRecordExpired returns whether a user record (of an unverified user) has expired or not.
-  fn hasUserRecordExpired(&self, id: &str, createdAt: DateTime<Utc>) -> bool {
+  fn hasUserRecordExpired(&self, createdAt: DateTime<Utc>) -> bool {
     let hasUserRecordExpired=
       Utc::now( ).signed_duration_since(createdAt) > Duration::minutes(5);
 
@@ -71,6 +72,7 @@ impl SurrealdbAdapter {
 #[async_trait]
 impl UsersRepository for SurrealdbAdapter {
 
+  #[instrument(name = "EmailAndUsernameUniquenessCheck", skip(self))]
   async fn emailAndUsernameUniquenessCheck(&self, email: &str, username: &str) -> Result<Vec<String>> {
     let query=
       "SELECT email, username, created_at, is_verified FROM users WHERE email = $email OR username = $username LIMIT 2";
@@ -106,7 +108,7 @@ impl UsersRepository for SurrealdbAdapter {
     let mut errors = Vec::<String>::with_capacity(2);
 
     for existingUser in existingUsers {
-      if !existingUser.isVerified && self.hasUserRecordExpired(&existingUser.id, existingUser.createdAt) { continue }
+      if !existingUser.isVerified && self.hasUserRecordExpired(existingUser.createdAt) { continue }
 
       if email == existingUser.email {
         errors.push("Email is already registered".to_string( ));
@@ -119,6 +121,7 @@ impl UsersRepository for SurrealdbAdapter {
     Ok(errors)
   }
 
+  #[instrument(name = "CreateNewUser", skip(self))]
   async fn createNewUser(&self, args: &StartRegistrationRequest, verificationCode: &str) -> Result<( )> {
 
     let salt= SaltString::generate(&mut OsRng);
@@ -150,6 +153,7 @@ impl UsersRepository for SurrealdbAdapter {
     Ok(( ))
   }
 
+  #[instrument(name = "VerifyUser", skip(self))]
   async fn verifyUser(&self, args: &VerifyUserRequest) -> Result<( )> {
     let query=
       "SELECT id, verification_code, created_at FROM users WHERE email = $email LIMIT 1";
@@ -183,7 +187,7 @@ impl UsersRepository for SurrealdbAdapter {
       Some(user) => {
         let id= user.id.to_string( );
 
-        if self.hasUserRecordExpired(&id, user.createdAt) {
+        if self.hasUserRecordExpired(user.createdAt) {
           return Err(anyhow!("User not found"))}
 
         if user.verificationCode != args.verification_code {
@@ -203,6 +207,7 @@ impl UsersRepository for SurrealdbAdapter {
     Ok(( ))
   }
 
+  #[instrument(name= "CheckPassword", skip(self))]
   async fn checkPassword(&self, identifier: &str, password: &str) -> Result<String> {
 
     let identifierType= match validate_email(identifier) {
@@ -248,6 +253,7 @@ impl UsersRepository for SurrealdbAdapter {
     }
   }
 
+  #[instrument(name= "VerifiedUserWithIdExists", skip(self))]
   async fn verifiedUserWithIdExists(&self, id: &str) -> Result<( )> {
     let query= "SELECT id FROM users WHERE id= $id";
 
