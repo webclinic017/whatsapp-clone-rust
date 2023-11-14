@@ -5,3 +5,4 @@ resources:
   - ./opa-gatekeeper.yaml
   - ./rabbitmq.yaml
   - ./autometrics.yaml
+  - ./application-controller.yaml

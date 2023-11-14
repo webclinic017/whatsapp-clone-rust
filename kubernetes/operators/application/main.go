@@ -10,6 +10,7 @@ import (
 	informers "github.com/Archisman-Mridha/whatsapp-clone/kubernetes/operators/application/pkg/generated/informers/externalversions"
 	"github.com/charmbracelet/log"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
@@ -26,7 +27,15 @@ func main( ) {
 
 	kubeconfig, err := clientcmd.BuildConfigFromFlags("", *kubeconfigFilepath)
 	if err != nil {
-		log.Errorf("Error building kubeconfig : %v", err)}
+		log.Errorf("Error building kubeconfig : %v", err)
+
+		log.Info("Trying to build kubeconfig from in-cluster config")
+		// In-cluster configuration allows applications running in a pod to automatically connect to the
+		// Kubernetes API using the service account (mounted on the pod) credentials and API server
+		// endpoint information injected by the cluster.
+		if kubeconfig, err= rest.InClusterConfig( ); err != nil {
+			log.Fatalf("Error building kubeconfig from in-cluster config : %v", err)}
+	}
 
 	ctx := setupGracefullShutdownHandler( )
 

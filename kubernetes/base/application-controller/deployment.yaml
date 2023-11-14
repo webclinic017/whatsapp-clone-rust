@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: application-controller
+  namespace: default
+
+spec:
+  selector:
+    matchLabels:
+      app: application-controller
+  template:
+    metadata:
+      labels:
+        app: application-controller
+    spec:
+      containers:
+        - name: application-controller
+          image: ghcr.io/archisman-mridha/whatsapp-clone-application-controller:4ee1e52cfd722b83b12dd6f9562cb538dabe3228
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 200m

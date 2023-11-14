@@ -88,6 +88,10 @@ jobs:
             path: backend/microservices/profile
             manifest: kubernetes/base/microservices/profile-microservice.application.yaml
 
+          - name: application-controller
+            path: kubernetes/operators/application
+            manifest: kubernetes/base/application-controller/deployment.yaml
+
     steps:
 
       - name: Checkout code
@@ -120,7 +124,7 @@ jobs:
           username: archisman-mridha
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Restore Caches Cargo dependencies (if exists)
+      - name: Restore cached Cargo dependencies (if exists)
         if: steps.path-filter.outputs.changed == 'true'
         uses: actions/cache/restore@v3
         with:
