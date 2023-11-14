@@ -13,6 +13,7 @@ spec:
       labels:
         app: application-controller
     spec:
+      serviceAccountName: application-controller
       containers:
         - name: application-controller
           image: ghcr.io/archisman-mridha/whatsapp-clone-application-controller:78cd2ead9ce9828ab6ec1265192df427eca05e90

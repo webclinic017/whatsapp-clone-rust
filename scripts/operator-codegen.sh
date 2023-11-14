@@ -36,3 +36,5 @@ controller-gen \
   paths=github.com/Archisman-Mridha/whatsapp-clone/kubernetes/operators/application/pkg/apis/whatsappclone.io/v1alpha1 \
   crd:crdVersions=v1 \
   output:crd:artifacts:config=manifests
+
+cp manifests/whatsappclone.io_applications.yaml ../../base/application-controller

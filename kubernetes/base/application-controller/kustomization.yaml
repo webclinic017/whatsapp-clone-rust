@@ -1,5 +1,5 @@
 resources:
-  - ../../operators/application/manifests/whatsappclone.io_applications.yaml
+  - whatsappclone.io_applications.yaml
 
   - cluster-role.yaml
   - cluster-role-binding.yaml

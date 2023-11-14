@@ -6,7 +6,7 @@ metadata:
 rules:
 
   - apiGroups: ["whatsappclone.io"]
-    resources: ["Application"]
+    resources: ["applications"]
     verbs: ["get", "list", "watch"]
 
   - apiGroups: [""]
