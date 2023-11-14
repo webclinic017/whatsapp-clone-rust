@@ -7,7 +7,10 @@ metadata:
 spec:
   image: archismanmridha/whatsapp-clone-authentication-microservice:0.0.1-alpha
   replicas:
-    min: 1
+    min: 2
     max: 3
+  resources:
+    cpu: 100m
+    memory: 100Mi
   secretName: authentication-microservice
   port: 4000

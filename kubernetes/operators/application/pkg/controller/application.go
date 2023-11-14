@@ -9,58 +9,86 @@ import (
 
 	"github.com/Archisman-Mridha/whatsapp-clone/kubernetes/operators/application/pkg/apis/whatsappclone.io/v1alpha1"
 	clientset "github.com/Archisman-Mridha/whatsapp-clone/kubernetes/operators/application/pkg/generated/clientset/versioned"
+	applicationScheme "github.com/Archisman-Mridha/whatsapp-clone/kubernetes/operators/application/pkg/generated/clientset/versioned/scheme"
 	informer "github.com/Archisman-Mridha/whatsapp-clone/kubernetes/operators/application/pkg/generated/informers/externalversions/whatsappclone.io/v1alpha1"
 	lister "github.com/Archisman-Mridha/whatsapp-clone/kubernetes/operators/application/pkg/generated/listers/whatsappclone.io/v1alpha1"
 	"github.com/charmbracelet/log"
 	appsV1 "k8s.io/api/apps/v1"
 	autoscalingV2 "k8s.io/api/autoscaling/v2"
 	coreV1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 )
 
-type Controller struct {
-	name string
+const (
+	CREATE_OPERATION = iota
+	UPDATE_OPERATION
+	DELETE_OPERATION
+)
 
-	// kubeclient is the Kubernetes API server client.
-	kubeclient *kubernetes.Clientset
+type (
+	Controller struct {
+		name string
 
-	/*
-		NOTE
+		// kubeclient is the Kubernetes API server client.
+		kubeclient *kubernetes.Clientset
 
-		1. Clientset abstracts the low-level HTTP communication with the API server for CRUD operations
-		regarding the Custom Resource.
+		/*
+			NOTE
 
-		2. Listers are utility components used to cache and index Kubernetes resources, making it faster
-		and more efficient to retrieve and filter resources from the cluster. Listers maintain an
-		up-to-date local cache of the desired resources and provide methods for querying and filtering
-		those resources. This helps reduce the load on the Kubernetes API server.
+			1. Clientset abstracts the low-level HTTP communication with the API server for CRUD operations
+			regarding the Custom Resource.
 
-		3. Informers are built on top of listers and are responsible for watching changes to resources
-		in the cluster. They continuously synchronize the local cache with the cluster state.
-	*/
-	clientset clientset.Interface
-	applicationLister lister.ApplicationLister
-	// informerSynced is a function that can be used to determine if the informer has synced the
-	// lister cache.
-	informerSynced cache.InformerSynced
+			2. Listers are utility components used to cache and index Kubernetes resources, making it faster
+			and more efficient to retrieve and filter resources from the cluster. Listers maintain an
+			up-to-date local cache of the desired resources and provide methods for querying and filtering
+			those resources. This helps reduce the load on the Kubernetes API server.
 
-	// The controller watches whatsappclone.io/Application type objects in the Kubernetes cluster.
-	// When an event, such as resource creation, update, or deletion, occurs regarding the object, the
-	// controller generates an event or task. Those events are enqueued into this work-queue. The
-	// work-queue processes events in a controlled and rate-limited manner.
-	workQueue workqueue.RateLimitingInterface
-}
+			3. Informers are built on top of listers and are responsible for watching changes to resources
+			in the cluster. They continuously synchronize the local cache with the cluster state.
+		*/
+		clientset clientset.Interface
+		applicationLister lister.ApplicationLister
+		// informerSynced is a function that can be used to determine if the informer has synced the
+		// lister cache.
+		informerSynced cache.InformerSynced
+
+		// The controller watches whatsappclone.io/Application type objects in the Kubernetes cluster.
+		// When an event, such as resource creation, update, or deletion, occurs regarding the object, the
+		// controller generates an event or task. Those events are enqueued into this work-queue. The
+		// work-queue processes events in a controlled and rate-limited manner.
+		workQueue workqueue.RateLimitingInterface
+
+		eventRecorder record.EventRecorder
+	}
+
+	Operation struct {
+		_type int
+		key string
+	}
+)
 
 // NewController returns a new instance of the Controller.
 func NewController(kubeclient *kubernetes.Clientset, clientset clientset.Interface, informer informer.ApplicationInformer) *Controller {
+	runtime.Must(applicationScheme.AddToScheme(scheme.Scheme))
+
+	// An event broadcaster can broadcast events to multiple sinks like API server and standard log.
+	eventBroadcaster := record.NewBroadcaster( )
+	// This starts recording events to the API server event sink. It uses the CoreV1 client to send
+	// events to the /events endpoint of the related Application resource.
+	eventBroadcaster.StartRecordingToSink(&typedCoreV1.EventSinkImpl{
+		Interface: kubeclient.CoreV1( ).Events(""),
+	})
+
 	controller := &Controller{
-		name: "Application Controller",
+		name: "application-controller",
 
 		kubeclient: kubeclient,
 
@@ -69,6 +97,8 @@ func NewController(kubeclient *kubernetes.Clientset, clientset clientset.Interfa
 		informerSynced: informer.Informer( ).HasSynced,
 
 		workQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter( ), "application"),
+
+		eventRecorder: eventBroadcaster.NewRecorder(scheme.Scheme, coreV1.EventSource{ Component: "Application" }),
 	}
 
 	log.Info("Setting up event handlers in informer factory")
@@ -90,22 +120,49 @@ func(c *Controller) handleObjectAdded(obj interface{}) {
 		return
 	}
 
-	c.workQueue.Add(key)
+	c.workQueue.Add(Operation {
+		_type: CREATE_OPERATION,
+		key: key,
+	})
 }
 
-func(c *Controller) handleObjectUpdated(oldObj interface{}, newObj interface{}) { }
+func(c *Controller) handleObjectUpdated(oldObj interface{}, newObj interface{}) {
+	if oldObj == newObj {
+		return
+	}
+
+	key, err := cache.MetaNamespaceKeyFunc(newObj)
+	if err != nil {
+		runtime.HandleError(err)
+		return
+	}
+
+	c.workQueue.Add(Operation {
+		_type: UPDATE_OPERATION,
+		key: key,
+	})
+}
 
 // handleObjectDeleted is invoked when an Application object is deleted from the cluster. It adds
 // the object to the work-queue.
 func(c *Controller) handleObjectDeleted(obj interface{}) {
-	c.workQueue.Add(obj)
+	key, err := cache.MetaNamespaceKeyFunc(obj)
+	if err != nil {
+		runtime.HandleError(err)
+		return
+	}
+
+	c.workQueue.Add(Operation {
+		_type: DELETE_OPERATION,
+		key: key,
+	})
 }
 
 // Run will set up the event handlers for types we are interested in, as well as syncing informer
 // caches and starting workers. It will block until stopCh (in the informerFactory) is closed, at
 // which point it will shutdown the workqueue and wait for workers to finish processing their
 // current work items.
-func (c *Controller) Run(ctx context.Context) error {
+func(c *Controller) Run(ctx context.Context) error {
 	log.Info("Starting Application controller")
 
 	defer runtime.HandleCrash( )
@@ -129,13 +186,13 @@ func (c *Controller) Run(ctx context.Context) error {
 
 // processWorkQueueItems is a long-running method that will continually call the
 // processNextWorkQueueItem function in order to read and process an event int the work-queue.
-func (c *Controller) processWorkQueueItems(ctx context.Context) {
+func(c *Controller) processWorkQueueItems(ctx context.Context) {
 	for c.processNextWorkQueueItem(ctx) { }
 }
 
 // processNextWorkQueueItem will read a single work item off the work-queue and attempt to process
 // it, by calling the syncHandler method.
-func (c *Controller) processNextWorkQueueItem(ctx context.Context) bool {
+func(c *Controller) processNextWorkQueueItem(ctx context.Context) bool {
 	obj, shutdown := c.workQueue.Get( )
 	if shutdown {
 		return false
@@ -148,21 +205,21 @@ func (c *Controller) processNextWorkQueueItem(ctx context.Context) bool {
 		// and attempted again after a back-off period.
 		defer c.workQueue.Done(obj)
 
-		key, ok := obj.(string)
+		operation, ok := obj.(Operation)
 		if !ok {
 			c.workQueue.Forget(obj)
-			runtime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
+			runtime.HandleError(fmt.Errorf("expected object of type 'Operation' in workqueue but got %#v", obj))
 			return nil
 		}
 
-		if err := c.syncHandler(ctx, key); err != nil {
+		if err := c.syncHandler(ctx, operation); err != nil {
 			// Put the item back in the work-queue to handle any transient errors.
-			c.workQueue.AddRateLimited(key)
-			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error( ))
+			c.workQueue.AddRateLimited(operation)
+			return fmt.Errorf("error syncing '%s': %s, requeuing", operation.key, err.Error( ))
 		}
 
 		c.workQueue.Forget(obj)
-		log.Infof("Successfully synced resource %s", key)
+		log.Infof("Successfully synced Application resource with key %s", operation.key)
 		return nil
 	}(obj)
 
@@ -174,8 +231,9 @@ func (c *Controller) processNextWorkQueueItem(ctx context.Context) bool {
 
 // syncHandler compares the actual state with the desired (for an Application resource), and
 // attempts to converge the two.
-func (c *Controller) syncHandler(ctx context.Context, key string) error {
-	logger := log.With("resourceName", key)
+func(c *Controller) syncHandler(ctx context.Context, operation Operation) error {
+	key := operation.key
+	logger := log.With("resourceKey", key)
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -183,45 +241,79 @@ func (c *Controller) syncHandler(ctx context.Context, key string) error {
 		return nil
 	}
 
-	application, err := c.applicationLister.Applications(namespace).Get(name)
-	if err != nil {
-		// The Application resource has been deleted.
-		if errors.IsNotFound(err) {
-			c.kubeclient.AppsV1( ).Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{ })
-			c.kubeclient.AutoscalingV2( ).HorizontalPodAutoscalers(namespace).Delete(ctx, name, metav1.DeleteOptions{ })
-			c.kubeclient.CoreV1( ).Services(namespace).Delete(ctx, name, metav1.DeleteOptions{ })
+	switch operation._type {
+		// If the Application resource is deleted.
+		case DELETE_OPERATION: {
+			if err := c.kubeclient.AppsV1( ).Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{ }); err != nil {
+				logger.Errorf("Error deleting Kubernetes Deployment : %v", err)
+				return err
+			}
+			logger.Info("Successfully deleted Kubernetes Deployment")
+
+			if err := c.kubeclient.AutoscalingV2( ).HorizontalPodAutoscalers(namespace).Delete(ctx, name, metav1.DeleteOptions{ }); err != nil {
+				logger.Errorf("Error deleting Kubernetes Horizontal Pod Autoscaler : %v", err)
+				return err
+			}
+			logger.Info("Successfully deleted Kubernetes Horizontal Pod Autoscaler")
+
+			if err := c.kubeclient.CoreV1( ).Services(namespace).Delete(ctx, name, metav1.DeleteOptions{ }); err != nil {
+				logger.Errorf("Error deleting Kubernetes Service : %v", err)
+				return err
+			}
+			logger.Info("Successfully deleted Kubernetes Service")
 
 			return nil
 		}
 
-		return err
-	}
+		// If the Application resource is created / updated.
+		default: {
+			var application *v1alpha1.Application
+			if application, err= c.applicationLister.Applications(namespace).Get(name); err != nil {
+				return err
+			}
 
-	/* Create Kubernetes Deployment, HorizontalPodAutoscaler and Secret for the Application */ {
-		if err := c.createDeployment(ctx, application); err != nil {
-			logger.Error("Error creating Kubernetes Deployment : %v", err)
-			return err
-		}
-		logger.Info("Successfully created Kubernetes Deployment")
+			update := operation._type == UPDATE_OPERATION
 
-		if err := c.createHorizontalPodAutoscaler(ctx, application); err != nil {
-			logger.Error("Error creating Kubernetes Horizontal Pod Autoscaler : %v", err)
-			return err
-		}
-		logger.Info("Successfully created Kubernetes Horizontal Pod Autoscaler")
+			var operationName string
+			if operation._type == UPDATE_OPERATION {
+				operationName= "update"
+			} else {
+				operationName= "create"
+			}
 
-		if err := c.createService(ctx, application); err != nil {
-			logger.Error("Error creating Kubernetes Service : %v", err)
-			return err
+			// Create / update Kubernetes Deployment, Service and Horizontal Pod Autoscaler.
+
+			if err := c.createOrUpdateDeployment(ctx, application, update); err != nil {
+				logger.Errorf("Error trying to %s Kubernetes Deployment : %v", operationName, err)
+				c.eventRecorder.Event(application, coreV1.EventTypeWarning, err.Error( ), fmt.Sprintf("Error trying to %s Kubernetes Deployment", operationName))
+				return err
+			}
+			logger.Infof("Succeeded to %s Kubernetes Deployment", operationName)
+			c.eventRecorder.Event(application, coreV1.EventTypeNormal, "", fmt.Sprintf("Succeeded to %s Kubernetes Deployment", operationName))
+
+			if err := c.createOrUpdateHpa(ctx, application, update); err != nil {
+				logger.Errorf("Error trying to %s Horizontal Pod Autoscaler : %v", operationName, err)
+				c.eventRecorder.Event(application, coreV1.EventTypeWarning, err.Error( ), fmt.Sprintf("Error trying to %s Horizontal Pod Autoscaler", operationName))
+				return err
+			}
+			logger.Infof("Succeeded to %s Horizontal Pod Autoscaler", operationName)
+			c.eventRecorder.Event(application, coreV1.EventTypeNormal, "", fmt.Sprintf("Succeeded to %s Horizontal Pod Autoscaler", operationName))
+
+			if err := c.createOrUpdateService(ctx, application, update); err != nil {
+				logger.Errorf("Error trying to %s Kubernetes Service : %v", operationName, err)
+				c.eventRecorder.Event(application, coreV1.EventTypeWarning, err.Error( ), fmt.Sprintf("Error trying to %s Kubernetes Service", operationName))
+				return err
+			}
+			logger.Infof("Succeeded to %s Kubernetes Service", operationName)
+			c.eventRecorder.Event(application, coreV1.EventTypeNormal, "", fmt.Sprintf("Succeeded to %s Kubernetes Service", operationName))
 		}
-		logger.Info("Successfully created Kubernetes Service")
 	}
 
 	return nil
 }
 
-// createDeployment creates the Kubernetes Deployment for an Application resource.
-func(c *Controller) createDeployment(ctx context.Context, application *v1alpha1.Application) error {
+// createOrUpdateDeployment creates / updates the Kubernetes Deployment for an Application resource.
+func(c *Controller) createOrUpdateDeployment(ctx context.Context, application *v1alpha1.Application, update bool) error {
 	name := application.Name
 	namespace := application.Namespace
 
@@ -257,7 +349,7 @@ func(c *Controller) createDeployment(ctx context.Context, application *v1alpha1.
 
 					Ports: []coreV1.ContainerPort{
 						{
-							Name: "gRPC server",
+							Name: "grpc-server",
 							ContainerPort: application.Spec.Port,
 							Protocol: "TCP",
 						},
@@ -305,13 +397,20 @@ func(c *Controller) createDeployment(ctx context.Context, application *v1alpha1.
 		},
 	}
 
-	_, err := c.kubeclient.AppsV1( ).Deployments(namespace).Create(ctx, deploymentObject, metav1.CreateOptions{ })
+	deployments := c.kubeclient.AppsV1( ).Deployments(namespace)
+
+	var err error
+	if update {
+		_, err= deployments.Update(ctx, deploymentObject, metav1.UpdateOptions{ })
+	} else {
+		_, err= deployments.Create(ctx, deploymentObject, metav1.CreateOptions{ })
+	}
 	return err
 }
 
-// createHorizontalPodAutoscaler creates the Kubernetes Horizontal Pod Autoscaler for an Application
+// createOrUpdateHpa creates / updates the Kubernetes Horizontal Pod Autoscaler for an Application
 // resource.
-func(c *Controller) createHorizontalPodAutoscaler(ctx context.Context, application *v1alpha1.Application) error {
+func(c *Controller) createOrUpdateHpa(ctx context.Context, application *v1alpha1.Application, update bool) error {
 	var (
 		name= application.Name
 		namespace= application.Namespace
@@ -320,7 +419,7 @@ func(c *Controller) createHorizontalPodAutoscaler(ctx context.Context, applicati
 		averageMemoryUtilization int32= 80
 	)
 
-	horizontalPodAutoscalerObject := &autoscalingV2.HorizontalPodAutoscaler{
+	hpaObject := &autoscalingV2.HorizontalPodAutoscaler{
 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -344,7 +443,7 @@ func(c *Controller) createHorizontalPodAutoscaler(ctx context.Context, applicati
 
 			Metrics: []autoscalingV2.MetricSpec{
 				{
-					Type: autoscalingV2.ContainerResourceMetricSourceType,
+					Type: autoscalingV2.ResourceMetricSourceType,
 					Resource: &autoscalingV2.ResourceMetricSource{
 						Name: "cpu",
 						Target: autoscalingV2.MetricTarget{
@@ -354,7 +453,7 @@ func(c *Controller) createHorizontalPodAutoscaler(ctx context.Context, applicati
 					},
 				},
 				{
-					Type: autoscalingV2.ContainerResourceMetricSourceType,
+					Type: autoscalingV2.ResourceMetricSourceType,
 					Resource: &autoscalingV2.ResourceMetricSource{
 						Name: "memory",
 						Target: autoscalingV2.MetricTarget{
@@ -367,13 +466,19 @@ func(c *Controller) createHorizontalPodAutoscaler(ctx context.Context, applicati
 		},
 	}
 
-	_, err := c.kubeclient.AutoscalingV2( ).HorizontalPodAutoscalers(namespace).
-												 									Create(ctx, horizontalPodAutoscalerObject, metav1.CreateOptions{ })
+	hpas := c.kubeclient.AutoscalingV2( ).HorizontalPodAutoscalers(namespace)
+
+	var err error
+	if update {
+		_, err= hpas.Update(ctx, hpaObject, metav1.UpdateOptions{ })
+	} else {
+		_, err= hpas.Create(ctx, hpaObject, metav1.CreateOptions{ })
+	}
 	return err
 }
 
-// createService creates the Kubernetes Service for an Application resource.
-func(c *Controller) createService(ctx context.Context, application *v1alpha1.Application) error {
+// createOrUpdateService creates / updates the Kubernetes Service for an Application resource.
+func(c *Controller) createOrUpdateService(ctx context.Context, application *v1alpha1.Application, update bool) error {
 	name := application.Name
 	namespace := application.Namespace
 
@@ -395,7 +500,7 @@ func(c *Controller) createService(ctx context.Context, application *v1alpha1.App
 
 			Ports: []coreV1.ServicePort{
 				{
-					Name: "gRPC server",
+					Name: "grpc-server",
 					Port: application.Spec.Port,
 					TargetPort: intstr.FromInt32(application.Spec.Port),
 				},
@@ -403,6 +508,13 @@ func(c *Controller) createService(ctx context.Context, application *v1alpha1.App
 		},
 	}
 
-	_, err := c.kubeclient.CoreV1( ).Services(namespace).Create(ctx, serviceObject, metav1.CreateOptions{ })
+	services := c.kubeclient.CoreV1( ).Services(namespace)
+
+	var err error
+	if update {
+		_, err= services.Update(ctx, serviceObject, metav1.UpdateOptions{ })
+	} else {
+		_, err= services.Create(ctx, serviceObject, metav1.CreateOptions{ })
+	}
 	return err
 }
