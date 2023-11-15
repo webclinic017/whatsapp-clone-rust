@@ -1,5 +1,7 @@
 resources:
   - ../../base
-  - ./kubernetes-dashboard.yaml
-  - ./surrealdb.yaml
-  - ./jaeger.yaml
+  - istio.yaml
+  - jaeger.yaml
+  - kubernetes-dashboard.yaml
+  - rabbitmq.yaml
+  - surrealdb.yaml

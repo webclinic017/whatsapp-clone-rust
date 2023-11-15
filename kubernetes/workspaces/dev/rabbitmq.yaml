@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: rabbitmq
+  namespace: argocd
+
+spec:
+  project: default
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rabbitmq-system
+
+  source:
+    repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
+    targetRevision: HEAD
+    path: kubernetes/workspaces/dev/rabbitmq
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

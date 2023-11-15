@@ -1,12 +1,12 @@
 resources:
   - ../../base
-  - ./kube-prometheus-stack.yaml
-  - ./kubescape.yaml
-  - ./cert-manager.yaml
-  - ./external-dns.yaml
-  - ./surrealdb.yaml
-  - https://app.getambassador.io/yaml/emissary/3.8.2/emissary-crds.yaml ## Emissary Ingress CRDs.
-  - ./emissary-ingress.yaml
-  - ./falco.yaml
-  - ./jaeger.yaml
-  - ./metrics-server.yaml
+  - cert-manager.yaml
+  - external-dns.yaml
+  - falco.yaml
+  - istio.yaml
+  - jaeger.yaml
+  - kube-prometheus-stack.yaml
+  - kubescape.yaml
+  - metrics-server.yaml
+  - rabbitmq.yaml
+  - surrealdb.yaml

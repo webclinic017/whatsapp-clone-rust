@@ -86,6 +86,6 @@ spec:
       cpu: 1000m
       memory: 1Gi
     limits:
-      storage: 20Gi
+      storage: 10Gi
       cpu: 2000m
       memory: 2Gi

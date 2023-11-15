@@ -37,5 +37,5 @@ helmCharts:
               spec:
                 resources:
                   requests:
-                    storage: 500Mi
+                    storage: 100Mi
                 accessModes: [ ReadWriteOnce ]

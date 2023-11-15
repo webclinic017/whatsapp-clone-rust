@@ -43,6 +43,8 @@ helmCharts:
 
         webui:
           enabled: true
+          redis:
+            storageSize: 100Mi
 
         config:
           existingSecret: falcosidekick-config

@@ -24,14 +24,22 @@ spec:
         cassandra:
           persistence:
             enabled: true
-            size: 500Mi
+            size: 1Gi
+          config:
+            cluster_size: 1
+
+        agent:
+          enabled: false
 
         collector:
           service:
             otlp:
               grpc:
-                name: otp-grpc
+                name: otlp-grpc
                 port: 4317
+              http:
+                name: otlp-http
+                port: 4318
 
   syncPolicy:
     automated:

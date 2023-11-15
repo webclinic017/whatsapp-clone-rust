@@ -1,8 +1,7 @@
 resources:
-  - ./bitnami-sealed-secrets.yaml
-  - ./roles.yaml
-  - ./surrealdb-migrate.yaml
-  - ./opa-gatekeeper.yaml
-  - ./rabbitmq.yaml
-  - ./autometrics.yaml
-  - ./application-controller.yaml
+  - application-controller.yaml
+  - autometrics.yaml
+  - bitnami-sealed-secrets.yaml
+  - microservices.yaml
+  - opa-gatekeeper.yaml
+  - surrealdb-migrate.yaml

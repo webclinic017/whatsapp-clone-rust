@@ -25,6 +25,11 @@ spec:
         server: api.armosec.io
         account: 16af738b-23c4-43ec-8ae4-5ca9324173a
 
+        persistence:
+          size:
+            backingStorage: 1Gi
+            kubevuln: 1Gi
+
   syncPolicy:
     automated:
       prune: true

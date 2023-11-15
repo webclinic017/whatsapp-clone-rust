@@ -1,20 +1,20 @@
 namespace: surrealdb
-resources:
+resources: [ ]
   ## CRDs
-  - https://raw.githubusercontent.com/pingcap/tidb-operator/v1.5.1/manifests/crd.yaml
+  ## - https://raw.githubusercontent.com/pingcap/tidb-operator/v1.5.1/manifests/crd.yaml
 
-  - ./tidb.cluster.yaml
+  ## - ./tidb.cluster.yaml
 
 helmCharts:
 
-  - repo: https://charts.pingcap.org
-    name: tidb-operator
-    version: v1.4.5
-    releaseName: tidb-operator
-    namespace: surrealdb
-    valuesInline:
-      scheduler:
-        create: false
+  ## - repo: https://charts.pingcap.org
+  ##   name: tidb-operator
+  ##   version: v1.4.5
+  ##   releaseName: tidb-operator
+  ##   namespace: surrealdb
+  ##   valuesInline:
+  ##     scheduler:
+  ##       create: false
 
   - repo: https://helm.surrealdb.com
     name: surrealdb
@@ -25,7 +25,8 @@ helmCharts:
 
       surrealdb:
         ## Datastore path
-        path: tikv://main-pd:2379
+        ## path: tikv://main-pd:2379
+        path: memory
 
         ## Initially there will be no authentication mechanism. When the surrealdb-migrate
         ## Kubernetes Job will run, it will create a root user thus enforcing authentication.

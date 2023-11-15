@@ -1,0 +1,36 @@
+resources:
+  - namespace.yaml
+
+helmCharts:
+
+  ## The Istio base helm chart installs all the CRDs.
+  - repo: https://istio-release.storage.googleapis.com/charts
+    name: base
+    releaseName: istio-base
+    version: 1.20.0-rc.0
+
+  ## An Istio service mesh is logically split into a data plane and a control plane.
+  ## The data plane is composed of a set of intelligent Envoy proxies deployed as sidecars. These
+  ## proxies mediate and control all network communication between microservices. They also collect
+  ## and report telemetry on all mesh traffic.
+  ## The control plane manages and configures the proxies to route traffic.
+
+  ## Istiod provides service discovery, configuration and certificate management.
+  ##
+  ## Istiod converts high level routing rules that control traffic behavior into Envoy-specific
+  ## configurations, and propagates them to the sidecars at runtime. Pilot (a component inside
+  ## Istiod) abstracts platform-specific service discovery mechanisms and synthesizes them into a
+  ## standard format that any sidecar conforming with the Envoy API can consume.
+  ##
+  ## Istiod security enables strong service-to-service and end-user authentication with built-in
+  ## identity and credential management. You can use Istio to upgrade unencrypted traffic in the
+  ## service mesh. Using Istio, operators can enforce policies based on service identity rather than
+  ## on relatively unstable layer 3 or layer 4 network identifiers. Additionally, you can use
+  ## Istio’s authorization feature to control who can access your services.
+  ##
+  ## Istiod acts as a Certificate Authority (CA) and generates certificates to allow secure mTLS
+  ## communication in the data plane.
+  - repo: https://istio-release.storage.googleapis.com/charts
+    name: istiod
+    releaseName: istiod
+    version: 1.20.0-rc.0

@@ -20,12 +20,22 @@ spec:
       releaseName: jaeger
       valuesObject:
 
+        cassandra:
+          persistence:
+            enabled: false
+
+        agent:
+          enabled: false
+
         collector:
           service:
             otlp:
               grpc:
                 name: otp-grpc
                 port: 4317
+              http:
+                name: otlp-http
+                port: 4318
 
   syncPolicy:
     automated:

@@ -5,7 +5,7 @@ metadata:
   namespace: rabbitmq-system
 
 spec:
-  replicas: 3
+  replicas: 1
   resources:
     requests:
       cpu: 300m
@@ -14,4 +14,4 @@ spec:
       cpu: 500m
       memory: 500Mi
   persistence:
-    storage: 100Mi
+    enabled: false

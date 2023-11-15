@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: rabbitmq
+  name: microservices
   namespace: argocd
 
 spec:
@@ -10,12 +10,12 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: rabbitmq-system
+    namespace: microservices
 
   source:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
     targetRevision: HEAD
-    path: kubernetes/base/rabbitmq
+    path: kubernetes/base/microservices
 
   syncPolicy:
     automated:
