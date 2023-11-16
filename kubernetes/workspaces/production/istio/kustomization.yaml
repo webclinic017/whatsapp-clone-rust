@@ -50,6 +50,8 @@ helmCharts:
   ## enabled, any new pods that are created in that namespace will automatically have a sidecar
   ## added to them.
 
+  ## METRICS MONITORING
+  ##
   ## In an Istio mesh, each component exposes an endpoint that emits metrics. Prometheus works by
   ## scraping these endpoints and collecting the results. This is configured through the Prometheus
   ## configuration file which controls settings for which endpoints to query, the port and path to
@@ -63,10 +65,12 @@ helmCharts:
   ## However, the application metrics will follow whatever Istio configuration has been configured
   ## for the workload. In particular, if Strict mTLS is enabled, then Prometheus will need to be
   ## configured to scrape using Istio certificates.
-
+  ##
   ##  Istio offers a set of preconfigured Grafana dashboards for all of the most important metrics
   ## for the mesh and for the control plane.
 
+  ## DISTRIBUTED TRACING
+  ##
   ## Istio leverages Envoy’s distributed tracing feature to provide tracing integration out of the
   ## box. Specifically, Istio provides options to install various tracing backends and configure
   ## proxies to send trace spans to them automatically. Although Istio proxies can automatically
@@ -89,3 +93,7 @@ helmCharts:
       cr:
         create: true
         namespace: istio-system
+        spec:
+          external_services:
+            prometheus:
+              url: http://kube-prometheus-stack-prometheus.prometheus:9090
