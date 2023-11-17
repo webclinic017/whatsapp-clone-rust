@@ -21,3 +21,7 @@ protoc-gen-go:
 	cd ./backend/outboxer && \
 		go mod tidy
 	go work sync
+
+## Generate a token using which we can signin into the Kiali dashboard.
+get-kiali-token:
+	kubectl -n istio-system create token kiali-service-account

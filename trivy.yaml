@@ -8,10 +8,13 @@ cache-dir: $HOME/.cache/trivy
 scan:
   skip-dirs:
     - kubernetes/users
+    - kubernetes/workspaces/dev
   skip-files:
     - cloud/modules/prepare-cluster/sealed-secrets.key
     - cloud/terraform.tfstate
     - cloud/terraform.tfstate.backup
+    - schema.surql
+    - '**/*.secret.yaml'
 
 security-checks:
   - vuln

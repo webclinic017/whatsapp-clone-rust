@@ -1,5 +1,3 @@
-namespace: istio-system
-
 resources:
   - namespace.yaml
 
@@ -97,3 +95,11 @@ helmCharts:
           external_services:
             prometheus:
               url: http://kube-prometheus-stack-prometheus.prometheus:9090
+
+  ## Installing Istio Ingress Gateway. A Gateway provides more extensive customization and flexibility than Ingress, and allows Istio
+  ## features such as monitoring and route rules to be applied to traffic entering the cluster.
+  - repo: https://istio-release.storage.googleapis.com/charts
+    name: gateway
+    releaseName: istio-ingressgateway
+    version: 1.20.0
+    namespace: istio-system

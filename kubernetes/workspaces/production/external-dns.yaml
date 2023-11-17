@@ -16,6 +16,8 @@ spec:
     repoURL: https://github.com/Archisman-Mridha/whatsapp-clone
     targetRevision: HEAD
     path: kubernetes/workspaces/production/external-dns
+    plugin:
+      name: kustomize-enable-helm
 
   syncPolicy:
     automated:
